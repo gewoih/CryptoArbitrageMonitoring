@@ -86,44 +86,61 @@ namespace BinanceMonitoring
 
 			var arbitrageChains = GetArbitrageChains(coins, exchanges).ToList();
 
-			ThreadPool.QueueUserWorkItem(async (object obj) => await ArbitrageChainsFinder(exchanges, arbitrageChains));
+			await ArbitrageChainsFinder(exchanges, arbitrageChains);
 			
 			Console.ReadKey();
 		}
 
 		private static async Task ArbitrageChainsFinder(List<Exchange> exchanges, List<ArbitrageChainInfo> arbitrageChains)
 		{
+            foreach (var exchange in exchanges)
+            {
+                ThreadPool.QueueUserWorkItem(async (object obj) =>
+                {
+                    while (true)
+                    {
+                        await exchange.UpdateCoinPrices();
+                    }
+                });
+            }
+            
             while (true)
             {
-                foreach (var exchange in exchanges)
-                    await exchange.UpdateCoinPrices();
+                var filteredChains = arbitrageChains
+                    .Where(c => c.FromExchange.HasCoin(c.Coin) && c.ToExchange.HasCoin(c.Coin));
 
-				var filteredChains = arbitrageChains
-					.Where(c => c.FromExchange.HasCoin(c.Coin) && c.ToExchange.HasCoin(c.Coin));
-
-				var topChains = filteredChains.OrderByDescending(c => c.Divergence).Take(10);
+                var topChains = filteredChains
+                    .Where(c => c.FromExchangeMarketData.Divergence < 0.2m)
+                    .Where(c => c.ToExchangeMarketData.Divergence < 0.2m)
+                    .Where(c => c.Difference != 0)
+                    .Where(c => c.Divergence >= 0.8m)
+                    .OrderByDescending(c => c.Divergence);
 
                 foreach (var topChain in topChains)
                 {
                     Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: " +
-                            $"Diff = {topChain.Difference}, " +
-                            $"Div = {topChain.Divergence}, " +
-                            $"{topChain.Coin.Name} " +
-                            $"({topChain.FromExchange.Name}-{topChain.ToExchange.Name})");
+                        $"{topChain.FromExchangeMarketData.Last}; " +
+                        $"{topChain.ToExchangeMarketData.Last}; " +
+                        $"{topChain.Divergence}; " +
+                        $"{topChain.Coin.Name}" +
+                        $"({topChain.FromExchange.Name}-{topChain.ToExchange.Name})");
 
-                    await File.AppendAllTextAsync("Chains.txt", 
-                        $"{DateTime.UtcNow:HH:mm:ss.fff};" +
-                        $"{topChain.Coin.Name};" +
-                        $"{topChain.FromExchange.Name};" +
-                        $"{topChain.ToExchange.Name};" +
-                        $"{topChain.FromExchange.GetCoinPrice(topChain.Coin)};" +
-                        $"{topChain.ToExchange.GetCoinPrice(topChain.Coin)};" +
-                        $"{topChain.Difference};" +
-                        $"{topChain.Divergence};" +
-                        $"{Environment.NewLine}");
+                    //await File.AppendAllTextAsync("Chains.txt", 
+                    //    $"{DateTime.UtcNow:HH:mm:ss.fff};" +
+                    //    $"{topChain.Coin.Name};" +
+                    //    $"{topChain.FromExchange.Name};" +
+                    //    $"{topChain.ToExchange.Name};" +
+                    //    $"{topChain.FromExchange.GetCoinMarketData(topChain.Coin)};" +
+                    //    $"{topChain.ToExchange.GetCoinMarketData(topChain.Coin)};" +
+                    //    $"{topChain.Difference};" +
+                    //    $"{topChain.Divergence};" +
+                    //    $"{Environment.NewLine}");
                 }
 
-                Console.WriteLine(Environment.NewLine);
+                if (topChains.Count() > 1)
+                    Console.WriteLine(Environment.NewLine);
+
+                await Task.Delay(100);
             }
         }
 
@@ -144,9 +161,10 @@ namespace BinanceMonitoring
 		{
 			for (int i = 0; i < exchanges.Count; i++)
 			{
-				for (int j = i + 1; j < exchanges.Count; j++)
+				for (int j = 0; j < exchanges.Count; j++)
 				{
-					yield return Tuple.Create(exchanges[i], exchanges[j]);
+                    if (j != i)
+					    yield return Tuple.Create(exchanges[i], exchanges[j]);
 				}
 			}
 		}

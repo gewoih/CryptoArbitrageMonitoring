@@ -25,7 +25,7 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges
                     var bid = Convert.ToDecimal(coinData["best_bid"]);
                     var ask = Convert.ToDecimal(coinData["best_ask"]);
 
-                    CoinPrices[coin] = (bid + ask) / 2;
+                    CoinPrices[coin] = new MarketData { Bid = bid, Ask = ask };
                 }
                 catch { }
             }

@@ -8,12 +8,12 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges.Base
         public abstract string Name { get; }
         public ExchangeTickersInfo TickersInfo { get; set; }
         protected abstract string _baseApiEndpoint { get; }
-        protected readonly Dictionary<CryptoCoin, decimal> CoinPrices;
+        protected readonly Dictionary<CryptoCoin, MarketData> CoinPrices;
 
         public Exchange(List<CryptoCoin> coins, ExchangeTickersInfo tickersInfo)
         {
             TickersInfo = tickersInfo;
-            CoinPrices = coins.ToDictionary(key => key, value => 0m);
+            CoinPrices = coins.ToDictionary(key => key, value => new MarketData());
         }
 
         public Exchange RemoveCoins(List<CryptoCoin> coins)
@@ -26,12 +26,12 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges.Base
             return this;
         }
 
-        public decimal GetCoinPrice(CryptoCoin coin)
+        public MarketData GetCoinMarketData(CryptoCoin coin)
         {
-            if (CoinPrices.TryGetValue(coin, out decimal price)) 
-                return price;
+            if (CoinPrices.TryGetValue(coin, out MarketData marketData)) 
+                return marketData;
 
-            return decimal.Zero;
+            return new MarketData();
         }
 
         public bool HasCoin(CryptoCoin coin)

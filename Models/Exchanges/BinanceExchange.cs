@@ -8,9 +8,7 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges
         public override string Name => "Binance";
         protected override string _baseApiEndpoint => "https://api.binance.com/api/v3/ticker/bookTicker";
         
-        public BinanceExchange(List<CryptoCoin> coins, ExchangeTickersInfo tickersInfo) : base(coins, tickersInfo)
-        {
-        }
+        public BinanceExchange(List<CryptoCoin> coins, ExchangeTickersInfo tickersInfo) : base(coins, tickersInfo) { }
 
         public override async Task UpdateCoinPrices()
         {
@@ -25,7 +23,7 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges
                 var bid = Convert.ToDecimal(coinData["bidPrice"]);
                 var ask = Convert.ToDecimal(coinData["askPrice"]);
 
-                CoinPrices[coin] = (bid + ask) / 2;
+                CoinPrices[coin] = new MarketData { Bid = bid, Ask = ask };
             }
         }
     }

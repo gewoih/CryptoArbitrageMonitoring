@@ -23,7 +23,7 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges
                 var bid = Convert.ToDecimal(coinData["buy"]);
                 var ask = Convert.ToDecimal(coinData["sell"]);
 
-                CoinPrices[coin] = (bid + ask) / 2;
+                CoinPrices[coin] = new MarketData { Bid = bid, Ask = ask };
             }
         }
     }

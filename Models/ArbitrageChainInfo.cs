@@ -15,9 +15,9 @@ namespace CryptoArbitrageMonitoring.Models
             ToExchange = toExchange;
         }
 
-        public decimal FromExchangePrice => FromExchange.GetCoinPrice(Coin);
-        public decimal ToExchangePrice => ToExchange.GetCoinPrice(Coin);
-        public decimal Difference => Math.Round(FromExchangePrice - ToExchangePrice, 6);
-        public decimal Divergence => Math.Round(FromExchangePrice / ToExchangePrice * 100 - 100, 6);
+        public MarketData FromExchangeMarketData => FromExchange.GetCoinMarketData(Coin);
+        public MarketData ToExchangeMarketData => ToExchange.GetCoinMarketData(Coin);
+        public decimal Difference => Math.Round(FromExchangeMarketData.Last - ToExchangeMarketData.Last, 6);
+        public decimal Divergence => FromExchangeMarketData.Last != 0 && ToExchangeMarketData.Last != 0 ? Math.Round(FromExchangeMarketData.Last / ToExchangeMarketData.Last * 100 - 100, 6) : 0;
     }
 }
