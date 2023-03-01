@@ -1,118 +1,342 @@
 ﻿using CryptoArbitrageMonitoring.Models;
-using Newtonsoft.Json.Linq;
+using CryptoArbitrageMonitoring.Models.Exchanges;
+using CryptoArbitrageMonitoring.Models.Exchanges.Base;
 
 namespace BinanceMonitoring
 {
-	internal class Program
+    internal class Program
 	{
-		private static HttpClient _httpClient = new();
-		private const string _binanceApi = "https://api.binance.com/api/v3/ticker/price?symbol=ALGOUSDT";
-		private const string _kucoinApi = "https://api.kucoin.com/api/v1/market/orderbook/level1?symbol=ALGO-USDT";
-		//private const string _bitfinexApi = "https://api-pub.bitfinex.com/v2/ticker/tALGOUSD";
-		private const string _huobiApi = "https://api.huobi.pro/market/trade?symbol=algousdt";
-		private const string _gateioApi = "https://api.gateio.ws/api/v4/spot/tickers?currency_pair=ALGO_USDT";
-		private const string _okxApi = "https://www.okx.com/api/v5/market/index-tickers?instId=ALGO-USDT";
-		private const string _bybitApi = "https://api-testnet.bybit.com/v5/market/mark-price-kline?category=linear&symbol=ALGOUSDT&interval=1&limit=1";
-		private const string _bitmartApi = "https://api-cloud.bitmart.com/spot/v1/ticker?symbol=ALGO_USDT";
-		private const string _bitstampApi = "https://www.bitstamp.net/api/v2/order_book/algousd/";
+		private static CryptoCoin btcCoin = new("BTC");
+        private static CryptoCoin ethCoin = new("ETH");
+        private static CryptoCoin solCoin = new("SOL");
+        private static CryptoCoin dotCoin = new("DOT");
+        private static CryptoCoin adaCoin = new("ADA");
+        private static CryptoCoin maticCoin = new("MATIC");
+        private static CryptoCoin nearCoin = new("NEAR");
+        private static CryptoCoin grtCoin = new("GRT");
+        private static CryptoCoin ftmCoin = new("FTM");
+        private static CryptoCoin algoCoin = new("ALGO");
+        private static CryptoCoin icpCoin = new("ICP");
+        private static CryptoCoin fetCoin = new("FET");
+        private static CryptoCoin rndrCoin = new("RNDR");
+        private static CryptoCoin aptCoin = new("APT");
+        private static CryptoCoin xemCoin = new("XEM");
+        private static CryptoCoin rplCoin = new("RPL");
+        private static CryptoCoin qtumCoin = new("QTUM");
+        private static CryptoCoin magicCoin = new("MAGIC");
+        private static CryptoCoin blurCoin = new("BLUR");
+        private static CryptoCoin oceanCoin = new("OCEAN");
+        private static CryptoCoin stgCoin = new("STG");
+        private static CryptoCoin gtcCoin = new("GTC");
 
-		static async Task Main(string[] args)
+        static async Task Main(string[] args)
 		{
-			var binance = new Exchange("Binance");
-			var kucoin = new Exchange("Kucoin");
-			//var bitfinex = new Exchange("Bitfinex");
-			var huobi = new Exchange("Huobi");
-			var gateio = new Exchange("Gateio");
-			var okx = new Exchange("Okx");
-			var bybit = new Exchange("Bybit");
-			var bitmart = new Exchange("Bitmart");
-			var bitstamp = new Exchange("Bitstamp");
-
-			var exchangesPrices = new Dictionary<Exchange, decimal>
-			{
-				{ binance, 0 },
-				{ kucoin, 0 },
-				//{ bitfinex, 0 },
-				{ huobi, 0 },
-				{ gateio, 0 },
-				{ okx, 0 },
-				{ bybit, 0 },
-				{ bitmart, 0 },
-				{ bitstamp, 0 },
+            var coins = new List<CryptoCoin> 
+			{	
+				btcCoin, ethCoin, solCoin, dotCoin, adaCoin, 
+				maticCoin, nearCoin, grtCoin, ftmCoin, algoCoin, 
+				icpCoin, fetCoin, rndrCoin, aptCoin, xemCoin, rplCoin,
+                qtumCoin, magicCoin, blurCoin, oceanCoin, stgCoin, gtcCoin,
 			};
 
-			var exchangesCombinations = GetExchangesCombinations(exchangesPrices.Select(ep => ep.Key).ToList());
-
-			while (true)
+			var exchanges = new List<Exchange>
 			{
-				var arbitrageChains = new List<ArbitrageChainInfo>();
+				new BinanceExchange()
+					.WithCoins(new Dictionary<CryptoCoin, string> 
+					{
+						{ btcCoin, "BTCUSDT" },
+						{ ethCoin, "ETHUSDT" },
+						{ solCoin, "SOLUSDT" },
+						{ dotCoin, "DOTUSDT" },
+						{ adaCoin, "ADAUSDT" },
+                        { maticCoin, "MATICUSDT" },
+                        { nearCoin, "NEARUSDT" },
+                        { grtCoin, "GRTUSDT" },
+                        { ftmCoin, "FTMUSDT" },
+                        { algoCoin, "ALGOUSDT" },
+                        { icpCoin, "ICPUSDT" },
+                        { fetCoin, "FETUSDT" },
+                        { rndrCoin, "RNDRUSDT" },
+                        { aptCoin, "APTUSDT" },
+                        { xemCoin, "XEMUSDT" },
+                        { rplCoin, "RPLUSDT" },
 
-				var binanceTask = _httpClient.GetAsync(_binanceApi);
-				var kucoinTask = _httpClient.GetAsync(_kucoinApi);
-				//var bitfinexTask = _httpClient.GetAsync(_bitfinexApi);
-				var huobiTask = _httpClient.GetAsync(_huobiApi);
-				var gateioTask = _httpClient.GetAsync(_gateioApi);
-				var okxTask = _httpClient.GetAsync(_okxApi);
-				var bybitTask = _httpClient.GetAsync(_bybitApi);
-				var bitmartTask = _httpClient.GetAsync(_bitmartApi);
-				var bitstampTask = _httpClient.GetAsync(_bitstampApi);
+                        { qtumCoin, "QTUMUSDT" },
+                        { magicCoin, "MAGICUSDT" },
+                        //{ blurCoin, "BLURUSDT" },
+                        { oceanCoin, "OCEANUSDT" },
+                        { stgCoin, "STGUSDT" },
+                        { gtcCoin, "GTCUSDT" },
+                    }),
 
-				Task.WaitAll(binanceTask, kucoinTask, /*bitfinexTask,*/ huobiTask, gateioTask, okxTask);
+				new KucoinExchange()
+					.WithCoins(new Dictionary<CryptoCoin, string>
+					{
+						{ btcCoin, "BTC-USDT" },
+						{ ethCoin, "ETH-USDT" },
+						{ solCoin, "SOL-USDT" },
+						{ dotCoin, "DOT-USDT" },
+                        { adaCoin, "ADA-USDT" },
+                        { maticCoin, "MATIC-USDT" },
+                        { nearCoin, "NEAR-USDT" },
+                        { grtCoin, "GRT-USDT" },
+                        { ftmCoin, "FTM-USDT" },
+                        { algoCoin, "ALGO-USDT" },
+                        { icpCoin, "ICP-USDT" },
+                        { fetCoin, "FET-USDT" },
+                        { rndrCoin, "RNDR-USDT" },
+                        { aptCoin, "APT-USDT" },
+                        { xemCoin, "XEM-USDT" },
+                        { rplCoin, "RPL-USDT" },
 
-				var binanceResult = JObject.Parse(await binanceTask.Result.Content.ReadAsStringAsync());
-				var kucoinResult = JObject.Parse(await kucoinTask.Result.Content.ReadAsStringAsync());
-				//var bitfinexResult = JArray.Parse(await bitfinexTask.Result.Content.ReadAsStringAsync());
-				var huobiResult = JObject.Parse(await huobiTask.Result.Content.ReadAsStringAsync());
-				var gateioResult = JArray.Parse(await gateioTask.Result.Content.ReadAsStringAsync());
-				var okxResult = JObject.Parse(await okxTask.Result.Content.ReadAsStringAsync());
-				var bybitResult = JObject.Parse(await bybitTask.Result.Content.ReadAsStringAsync());
-				var bitmartResult = JObject.Parse(await bitmartTask.Result.Content.ReadAsStringAsync());
-				var bitstampResult = JObject.Parse(await bitstampTask.Result.Content.ReadAsStringAsync());
+                        //{ qtumCoin, "QTUM-USDT" },
+                        { magicCoin, "MAGIC-USDT" },
+                        { blurCoin, "BLUR-USDT" },
+                        { oceanCoin, "OCEAN-USDT" },
+                        { stgCoin, "STG-USDT" },
+                        { gtcCoin, "GTC-USDT" },
+                    }),
 
-				exchangesPrices[binance] = Convert.ToDecimal(binanceResult["price"]);
-				exchangesPrices[kucoin] = Convert.ToDecimal(kucoinResult["data"]["price"]);
-				//exchangesPrices[bitfinex] = Convert.ToDecimal(bitfinexResult[9]);
-				exchangesPrices[huobi] = Convert.ToDecimal(huobiResult["tick"]["data"][0]["price"]);
-				exchangesPrices[gateio] = Convert.ToDecimal(gateioResult[0]["last"]);
-				exchangesPrices[okx] = Convert.ToDecimal(okxResult["data"][0]["idxPx"]);
-				exchangesPrices[bybit] = Convert.ToDecimal(bybitResult["result"]["list"][0][4]);
-				exchangesPrices[bitstamp] = (Convert.ToDecimal(bitstampResult["bids"][0][0]) + Convert.ToDecimal(bitstampResult["asks"][0][0])) / 2;
+				new HuobiExchange()
+					.WithCoins(new Dictionary<CryptoCoin, string>
+					{
+                        { btcCoin, "btcusdt" },
+                        { ethCoin, "ethusdt" },
+                        { solCoin, "solusdt" },
+                        { dotCoin, "dotusdt" },
+                        { adaCoin, "adausdt" },
+                        { maticCoin, "maticusdt" },
+                        { nearCoin, "nearusdt" },
+                        { grtCoin, "grtusdt" },
+                        { ftmCoin, "ftmusdt" },
+                        { algoCoin, "algousdt" },
+                        { icpCoin, "icpusdt" },
+                        { fetCoin, "fetusdt" },
+                        { rndrCoin, "rndrusdt" },
+                        { aptCoin, "aptusdt" },
+                        { xemCoin, "xemusdt" },
+                        { rplCoin, "rplusdt" },
 
-				try
-				{
-					exchangesPrices[bitmart] = Convert.ToDecimal(bitmartResult["data"]["tickers"][0]["last_price"]);
-				}
-				catch { }
-				
-				foreach (var exchangeCombination in exchangesCombinations)
-				{
-					arbitrageChains.Add(new ArbitrageChainInfo(
-						Tuple.Create(exchangeCombination.Item1, exchangesPrices[exchangeCombination.Item1]),
-						Tuple.Create(exchangeCombination.Item2, exchangesPrices[exchangeCombination.Item2])));
-				}
+                        { qtumCoin, "qtumusdt" },
+                        { magicCoin, "magicusdt" },
+                        { blurCoin, "blurusdt" },
+                        { oceanCoin, "oceanusdt" },
+                        { stgCoin, "stgusdt" },
+                        //{ gtcCoin, "gtcusdt" },
+                    }),
 
-				var chainWithMaxDivergence = arbitrageChains.MaxBy(c => c.Divergence);
+				new GateioExchange()
+					.WithCoins(new Dictionary<CryptoCoin, string>
+					{
+                        { btcCoin, "BTC_USDT" },
+                        { ethCoin, "ETH_USDT" },
+                        { solCoin, "SOL_USDT" },
+                        { dotCoin, "DOT_USDT" },
+                        { adaCoin, "ADA_USDT" },
+                        { maticCoin, "MATIC_USDT" },
+                        { nearCoin, "NEAR_USDT" },
+                        { grtCoin, "GRT_USDT" },
+                        { ftmCoin, "FTM_USDT" },
+                        { algoCoin, "ALGO_USDT" },
+                        { icpCoin, "ICP_USDT" },
+                        { fetCoin, "FET_USDT" },
+                        { rndrCoin, "RNDR_USDT" },
+                        { aptCoin, "APT_USDT" },
+                        { xemCoin, "XEM_USDT" },
+                        { rplCoin, "RPL_USDT" },
 
-				Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: " +
-					$"Max diff. = {chainWithMaxDivergence.Difference}, " +
-					$"Max div. = {chainWithMaxDivergence.Divergence}, " +
-					$"{chainWithMaxDivergence.MainExchangeInfo.Item1.Name} to {chainWithMaxDivergence.SecondaryExchangeInfo.Item1.Name}");
-			}
+                        { qtumCoin, "QTUM_USDT" },
+                        { magicCoin, "MAGIC_USDT" },
+                        { blurCoin, "BLUR_USDT" },
+                        { oceanCoin, "OCEAN_USDT" },
+                        { stgCoin, "STG_USDT" },
+                        { gtcCoin, "GITCOIN_USDT" },
+                    }),
+
+				new OkxExchange()
+					.WithCoins(new Dictionary<CryptoCoin, string>
+					{
+                        { btcCoin, "BTC-USDT" },
+                        { ethCoin, "ETH-USDT" },
+                        { solCoin, "SOL-USDT" },
+                        { dotCoin, "DOT-USDT" },
+                        { adaCoin, "ADA-USDT" },
+                        { maticCoin, "MATIC-USDT" },
+                        { nearCoin, "NEAR-USDT" },
+                        { grtCoin, "GRT-USDT" },
+                        { ftmCoin, "FTM-USDT" },
+                        { algoCoin, "ALGO-USDT" },
+                        { icpCoin, "ICP-USDT" },
+                        //{ fetCoin, "FET-USDT" },
+                        //{ rndrCoin, "RNDR-USDT" },
+                        { aptCoin, "APT-USDT" },
+                        { xemCoin, "XEM-USDT" },
+                        //{ rplCoin, "RPL-USDT" }
+
+                        { qtumCoin, "QTUM-USDT" },
+                        { magicCoin, "MAGIC-USDT" },
+                        { blurCoin, "BLUR-USDT" },
+                        //{ oceanCoin, "OCEAN-USDT" },
+                        //{ stgCoin, "STG-USDT" },
+                        //{ gtcCoin, "GTC-USDT" },
+                    }),
+
+                //new BybitExchange()
+                //    .WithCoins(new Dictionary<CryptoCoin, string>
+                //    {
+                //        { btcCoin, "BTCUSDT" },
+                //        { ethCoin, "ETHUSDT" },
+                //        { solCoin, "SOLUSDT" },
+                //        { dotCoin, "DOTUSDT" },
+                //        { adaCoin, "ADAUSDT" },
+                //        //{ maticCoin, "MATICUSDT" },
+                //        { nearCoin, "NEARUSDT" },
+                //        //{ grtCoin, "GRTUSDT" },
+                //        { ftmCoin, "FTMUSDT" },
+                //        { algoCoin, "ALGOUSDT" },
+                //        //{ icpCoin, "ICPUSDT" },
+                //        //{ fetCoin, "FETUSDT" },
+                //        //{ rndrCoin, "RNDRUSDT" },
+                //        //{ aptCoin, "APTUSDT" },
+                //        //{ xemCoin, "XEMUSDT" },
+                //        //{ rplCoin, "RPLUSDT" }
+                //    }),
+
+                new BitmartExchange()
+                    .WithCoins(new Dictionary<CryptoCoin, string>
+                    {
+                        { btcCoin, "BTC_USDT" },
+                        { ethCoin, "ETH_USDT" },
+                        { solCoin, "SOL_USDT" },
+                        { dotCoin, "DOT_USDT" },
+                        { adaCoin, "ADA_USDT" },
+                        { maticCoin, "MATIC_USDT" },
+                        { nearCoin, "NEAR_USDT" },
+                        { grtCoin, "GRT_USDT" },
+                        { ftmCoin, "FTM_USDT" },
+                        { algoCoin, "ALGO_USDT" },
+                        { icpCoin, "ICP_USDT" },
+                        { fetCoin, "FET_USDT" },
+                        { rndrCoin, "RNDR_USDT" },
+                        { aptCoin, "APT_USDT" },
+                        { xemCoin, "XEM_USDT" },
+                        { rplCoin, "RPL_USDT" },
+
+                        { qtumCoin, "QTUM_USDT" },
+                        { magicCoin, "MAGIC_USDT" },
+                        { blurCoin, "BLUR_USDT" },
+                        { oceanCoin, "OCEAN_USDT" },
+                        { stgCoin, "STG_USDT" },
+                        { gtcCoin, "GTC_USDT" },
+                    }),
+
+                new BitstampExchange()
+                    .WithCoins(new Dictionary<CryptoCoin, string>
+                    {
+                        { btcCoin, "BTC/USD" },
+                        { ethCoin, "ETH/USDT" },
+                        { solCoin, "SOL/USD" },
+                        { dotCoin, "DOT/USD" },
+                        { adaCoin, "ADA/USD" },
+                        { maticCoin, "MATIC/USD" },
+                        { nearCoin, "NEAR/USD" },
+                        { grtCoin, "GRT/USD" },
+                        { ftmCoin, "FTM/USD" },
+                        { algoCoin, "ALGO/USD" },
+                        //{ icpCoin, "ICP/USD" },
+                        { fetCoin, "FET/USD" },
+                        { rndrCoin, "RNDR/USD" },
+                        //{ aptCoin, "APT/USD" },
+                        //{ xemCoin, "XEM/USD" },
+                        //{ rplCoin, "RPL/USD" },
+
+                        //{ qtumCoin, "QTUM/USD" },
+                        //{ magicCoin, "MAGIC/USD" },
+                        //{ blurCoin, "BLUR/USDT" },
+                        //{ oceanCoin, "OCEAN/USDT" },
+                        //{ stgCoin, "STG/USDT" },
+                        //{ gtcCoin, "GTC/USDT" },
+                    })
+            };
+
+			var arbitrageChains = GetArbitrageChains(coins, exchanges).ToList();
+
+			ThreadPool.QueueUserWorkItem(async (object obj) => await ArbitrageChainsFinder(exchanges, arbitrageChains));
+			
+			Console.ReadKey();
+
+			////var bitfinex = new Exchange("Bitfinex", "https://api-pub.bitfinex.com/v2/ticker/")
+			////	.AddTicker("tDOTUSD");
 		}
 
-		private static List<Tuple<Exchange, Exchange>> GetExchangesCombinations(List<Exchange> exchanges)
+		private static async Task ArbitrageChainsFinder(List<Exchange> exchanges, List<ArbitrageChainInfo> arbitrageChains)
 		{
-			var combinations = new List<Tuple<Exchange, Exchange>>();
+            while (true)
+            {
+                if (DateTime.Now.Second != 0)
+                {
+                    await Task.Delay(10);
+                    continue;
+                }
 
+                var tasks = new List<Task>();
+                foreach (var exchange in exchanges)
+                {
+                    tasks.Add(exchange.UpdateCoinPrices());
+                }
+                await Task.WhenAll(tasks);
+
+				var filteredChains = arbitrageChains
+					.Where(c => c.FromExchange.HasCoin(c.Coin) && c.ToExchange.HasCoin(c.Coin));
+
+				var topChains = filteredChains.OrderByDescending(c => c.Divergence);
+
+                foreach (var topChain in topChains)
+                {
+                    Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: " +
+                            $"Diff = {topChain.Difference}, " +
+                            $"Div = {topChain.Divergence}, " +
+                            $"{topChain.Coin.Name} " +
+                            $"({topChain.FromExchange.Name}-{topChain.ToExchange.Name})");
+
+                    await File.AppendAllTextAsync("Chains.txt", 
+                        $"{DateTime.UtcNow:HH:mm:ss.fff};" +
+                        $"{topChain.Coin.Name};" +
+                        $"{topChain.FromExchange.Name};" +
+                        $"{topChain.ToExchange.Name};" +
+                        $"{topChain.FromExchange.GetCoinPrice(topChain.Coin)};" +
+                        $"{topChain.ToExchange.GetCoinPrice(topChain.Coin)};" +
+                        $"{topChain.Difference};" +
+                        $"{topChain.Divergence};" +
+                        $"{Environment.NewLine}");
+                }
+
+                Console.WriteLine(Environment.NewLine);
+            }
+        }
+
+		private static IEnumerable<ArbitrageChainInfo> GetArbitrageChains(List<CryptoCoin> coins, List<Exchange> exchanges)
+		{
+			var exchangesCombinations = GetExchangesCombinations(exchanges);
+
+			foreach (var coin in coins)
+			{
+				foreach (var exchangesCombination in exchangesCombinations)
+				{
+					yield return new ArbitrageChainInfo(coin, exchangesCombination.Item1, exchangesCombination.Item2);
+				}
+			}
+		}
+		
+		private static IEnumerable<Tuple<Exchange, Exchange>> GetExchangesCombinations(List<Exchange> exchanges)
+		{
 			for (int i = 0; i < exchanges.Count; i++)
 			{
 				for (int j = i + 1; j < exchanges.Count; j++)
 				{
-					combinations.Add(Tuple.Create(exchanges[i], exchanges[j]));
+					yield return Tuple.Create(exchanges[i], exchanges[j]);
 				}
 			}
-
-			return combinations;
 		}
 	}
 }

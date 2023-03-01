@@ -1,18 +1,23 @@
-﻿namespace CryptoArbitrageMonitoring.Models
+﻿using CryptoArbitrageMonitoring.Models.Exchanges.Base;
+
+namespace CryptoArbitrageMonitoring.Models
 {
     public sealed class ArbitrageChainInfo
     {
-        public readonly Tuple<Exchange, decimal> MainExchangeInfo;
-        public readonly Tuple<Exchange, decimal> SecondaryExchangeInfo;
-        public decimal MainExchangePrice => MainExchangeInfo.Item2;
-        public decimal SecondaryExchangePrice => SecondaryExchangeInfo.Item2;
-        public decimal Difference => Math.Round(MainExchangePrice - SecondaryExchangePrice, 4);
-        public decimal Divergence => Math.Round(MainExchangePrice / SecondaryExchangePrice * 100 - 100, 6);
-        
-        public ArbitrageChainInfo(Tuple<Exchange, decimal> mainExchangeInfo, Tuple<Exchange, decimal> secondaryExchangeInfo)
+        public readonly CryptoCoin Coin;
+        public readonly Exchange FromExchange;
+        public readonly Exchange ToExchange;
+
+        public ArbitrageChainInfo(CryptoCoin coin, Exchange fromExchange, Exchange toExchange)
         {
-            MainExchangeInfo = mainExchangeInfo;
-            SecondaryExchangeInfo = secondaryExchangeInfo;
+            Coin = coin;
+            FromExchange = fromExchange;
+            ToExchange = toExchange;
         }
+
+        public decimal FromExchangePrice => FromExchange.GetCoinPrice(Coin);
+        public decimal ToExchangePrice => ToExchange.GetCoinPrice(Coin);
+        public decimal Difference => Math.Round(FromExchangePrice - ToExchangePrice, 6);
+        public decimal Divergence => Math.Round(FromExchangePrice / ToExchangePrice * 100 - 100, 6);
     }
 }
