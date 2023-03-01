@@ -6,8 +6,9 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges
     public sealed class OkxExchange : Exchange
     {
         public override string Name => "Okx";
-
         protected override string _baseApiEndpoint => "https://www.okx.com/api/v5/market/tickers?instType=SPOT";
+        
+        public OkxExchange(List<CryptoCoin> coins, ExchangeTickersInfo tickersInfo) : base(coins, tickersInfo) { }
 
         public override async Task UpdateCoinPrices()
         {
@@ -16,13 +17,13 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges
             var result = await httpClient.GetAsync(_baseApiEndpoint);
             var prices = JObject.Parse(await result.Content.ReadAsStringAsync());
 
-            foreach (var ticker in CoinPrices.Keys.ToList())
+            foreach (var coin in CoinPrices.Keys.ToList())
             {
-                var coinData = prices["data"].First(p => p["instId"].ToString() == CoinsToTickers[ticker]);
+                var coinData = prices["data"].First(p => p["instId"].ToString() == GetTickerByCoin(coin));
                 var bid = Convert.ToDecimal(coinData["bidPx"]);
                 var ask = Convert.ToDecimal(coinData["askPx"]);
 
-                CoinPrices[ticker] = (bid + ask) / 2;
+                CoinPrices[coin] = (bid + ask) / 2;
             }
         }
     }

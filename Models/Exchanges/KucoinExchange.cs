@@ -7,6 +7,8 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges
     {
         public override string Name => "Kucoin";
         protected override string _baseApiEndpoint => "https://api.kucoin.com/api/v1/market/allTickers";
+        
+        public KucoinExchange(List<CryptoCoin> coins, ExchangeTickersInfo tickersInfo) : base(coins, tickersInfo) { }
 
         public override async Task UpdateCoinPrices()
         {
@@ -15,13 +17,13 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges
             var result = await httpClient.GetAsync(_baseApiEndpoint);
             var prices = JObject.Parse(await result.Content.ReadAsStringAsync());
 
-            foreach (var ticker in CoinPrices.Keys.ToList())
+            foreach (var coin in CoinPrices.Keys.ToList())
             {
-                var coinData = prices["data"]["ticker"].First(p => p["symbol"].ToString() == CoinsToTickers[ticker]);
+                var coinData = prices["data"]["ticker"].First(p => p["symbol"].ToString() == GetTickerByCoin(coin));
                 var bid = Convert.ToDecimal(coinData["buy"]);
                 var ask = Convert.ToDecimal(coinData["sell"]);
 
-                CoinPrices[ticker] = (bid + ask) / 2;
+                CoinPrices[coin] = (bid + ask) / 2;
             }
         }
     }

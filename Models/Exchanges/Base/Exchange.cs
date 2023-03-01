@@ -1,19 +1,25 @@
-﻿namespace CryptoArbitrageMonitoring.Models.Exchanges.Base
+﻿using CryptoArbitrageMonitoring.Models.Enums;
+
+namespace CryptoArbitrageMonitoring.Models.Exchanges.Base
 {
     public abstract class Exchange
     {
         public abstract string Name { get; }
+        public ExchangeTickersInfo TickersInfo { get; set; }
         protected abstract string _baseApiEndpoint { get; }
-        protected readonly Dictionary<CryptoCoin, decimal> CoinPrices = new();
-        protected Dictionary<CryptoCoin, string> CoinsToTickers;
+        protected readonly Dictionary<CryptoCoin, decimal> CoinPrices;
 
-        public Exchange WithCoins(Dictionary<CryptoCoin, string> coinsToTickers)
+        public Exchange(List<CryptoCoin> coins, ExchangeTickersInfo tickersInfo)
         {
-            CoinsToTickers = coinsToTickers;
+            TickersInfo = tickersInfo;
+            CoinPrices = coins.ToDictionary(key => key, value => 0m);
+        }
 
-            foreach (var coin in coinsToTickers.Keys)
+        public Exchange RemoveCoins(List<CryptoCoin> coins)
+        {
+            foreach (var coin in coins)
             {
-                CoinPrices[coin] = 0m;
+                CoinPrices.Remove(coin);
             }
 
             return this;
@@ -33,5 +39,17 @@
         }
 
         public abstract Task UpdateCoinPrices();
+
+        protected string GetTickerByCoin(CryptoCoin coin)
+        {
+            var ticker = coin.Name + TickersInfo.Separator + TickersInfo.SecondCoin.Name;
+
+            if (TickersInfo.CaseType == CaseType.Uppercase)
+                ticker = ticker.ToUpper();
+            else if (TickersInfo.CaseType == CaseType.Lowercase)
+                ticker = ticker.ToLower();
+
+            return ticker;
+        }
     }
 }
