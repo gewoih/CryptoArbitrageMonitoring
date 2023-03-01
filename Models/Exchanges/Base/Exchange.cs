@@ -1,4 +1,5 @@
 ﻿using CryptoArbitrageMonitoring.Models.Enums;
+using System.Net.NetworkInformation;
 
 namespace CryptoArbitrageMonitoring.Models.Exchanges.Base
 {
@@ -48,6 +49,8 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges.Base
                 ticker = ticker.ToUpper();
             else if (TickersInfo.CaseType == CaseType.Lowercase)
                 ticker = ticker.ToLower();
+
+            ticker = TickersInfo.Prefix + ticker;
 
             return ticker;
         }

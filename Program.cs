@@ -3,6 +3,7 @@ using CryptoArbitrageMonitoring.Models.Enums;
 using CryptoArbitrageMonitoring.Models.Exchanges;
 using CryptoArbitrageMonitoring.Models.Exchanges.Base;
 using System.Linq;
+using System.Net.Http.Headers;
 
 namespace BinanceMonitoring
 {
@@ -61,13 +62,13 @@ namespace BinanceMonitoring
                 new OkxExchange(coins, new ExchangeTickersInfo("-", CaseType.Uppercase, usdtCoin))
                     .RemoveCoins(new List < CryptoCoin >() { fetCoin, rndrCoin, rplCoin, oceanCoin, stgCoin, gtcCoin }),
 
-                //new BybitExchange(coins, new ExchangeTickersInfo("", CaseType.Uppercase, usdtCoin))
-                //    .RemoveCoins(new List<CryptoCoin>() { maticCoin, grtCoin, icpCoin, fetCoin, rndrCoin, aptCoin, xemCoin, rplCoin, qtumCoin, magicCoin, blurCoin, oceanCoin, stgCoin, gtcCoin }),
-
                 new BitmartExchange(coins, new ExchangeTickersInfo("_", CaseType.Uppercase, usdtCoin)),
 
                 new BitstampExchange(coins, new ExchangeTickersInfo("/", CaseType.Uppercase, usdCoin))
-                    .RemoveCoins(new List<CryptoCoin>() { icpCoin, aptCoin, xemCoin, rplCoin, qtumCoin, oceanCoin, blurCoin, magicCoin, stgCoin, gtcCoin })
+                    .RemoveCoins(new List<CryptoCoin>() { icpCoin, aptCoin, xemCoin, rplCoin, qtumCoin, oceanCoin, blurCoin, magicCoin, stgCoin, gtcCoin }),
+
+                new BitfinexExchange(coins, new ExchangeTickersInfo("", CaseType.Uppercase, usdCoin, "t"))
+                    .RemoveCoins(new List<CryptoCoin>() { maticCoin, nearCoin, algoCoin, rndrCoin, xemCoin, rplCoin, qtumCoin, magicCoin, blurCoin, oceanCoin, gtcCoin })
             };
 
 			var arbitrageChains = GetArbitrageChains(coins, exchanges).ToList();
@@ -75,9 +76,6 @@ namespace BinanceMonitoring
 			ThreadPool.QueueUserWorkItem(async (object obj) => await ArbitrageChainsFinder(exchanges, arbitrageChains));
 			
 			Console.ReadKey();
-
-			////var bitfinex = new Exchange("Bitfinex", "https://api-pub.bitfinex.com/v2/ticker/")
-			////	.AddTicker("tDOTUSD");
 		}
 
 		private static async Task ArbitrageChainsFinder(List<Exchange> exchanges, List<ArbitrageChainInfo> arbitrageChains)
