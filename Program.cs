@@ -2,8 +2,6 @@
 using CryptoArbitrageMonitoring.Models.Enums;
 using CryptoArbitrageMonitoring.Models.Exchanges;
 using CryptoArbitrageMonitoring.Models.Exchanges.Base;
-using System.Linq;
-using System.Net.Http.Headers;
 
 namespace BinanceMonitoring
 {
@@ -34,6 +32,16 @@ namespace BinanceMonitoring
         private static CryptoCoin oceanCoin = new("OCEAN");
         private static CryptoCoin stgCoin = new("STG");
         private static CryptoCoin gtcCoin = new("GTC");
+        private static CryptoCoin roseCoin = new("ROSE");
+        private static CryptoCoin ankrCoin = new("ANKR");
+        private static CryptoCoin kavaCoin = new("KAVA");
+        private static CryptoCoin arCoin = new("AR");
+        private static CryptoCoin ksmCoin = new("KSM");
+        private static CryptoCoin rsrCoin = new("RSR");
+        private static CryptoCoin achCoin = new("ACH");
+        private static CryptoCoin slpCoin = new("SLP");
+        private static CryptoCoin xrdCoin = new("XRD");
+        private static CryptoCoin vgxCoin = new("VGX");
 
         static async Task Main(string[] args)
 		{
@@ -43,32 +51,37 @@ namespace BinanceMonitoring
 				maticCoin, nearCoin, grtCoin, ftmCoin, algoCoin, 
 				icpCoin, fetCoin, rndrCoin, aptCoin, xemCoin, rplCoin,
                 qtumCoin, magicCoin, blurCoin, oceanCoin, stgCoin, gtcCoin,
+                roseCoin, ankrCoin, kavaCoin, ksmCoin, rsrCoin, achCoin, slpCoin, xrdCoin, vgxCoin, arCoin
 			};
 
             var exchanges = new List<Exchange>
             {
                 new BinanceExchange(coins, new ExchangeTickersInfo("", CaseType.Uppercase, usdtCoin))
-                    .RemoveCoins(new List<CryptoCoin>() { blurCoin }),
+                    .RemoveCoins(new List<CryptoCoin>() { blurCoin, xrdCoin }),
                 
                 new KucoinExchange(coins, new ExchangeTickersInfo("-", CaseType.Uppercase, usdtCoin))
-                    .RemoveCoins(new List<CryptoCoin>() { qtumCoin }),
+                    .RemoveCoins(new List<CryptoCoin>() { qtumCoin, xrdCoin, vgxCoin }),
                 
                 new HuobiExchange(coins, new ExchangeTickersInfo("", CaseType.Lowercase, usdtCoin))
-                    .RemoveCoins(new List<CryptoCoin>() { gtcCoin }),
+                    .RemoveCoins(new List<CryptoCoin>() { gtcCoin, roseCoin, slpCoin, xrdCoin, vgxCoin }),
                 
                 new GateioExchange(coins, new ExchangeTickersInfo("_", CaseType.Uppercase, usdtCoin))
                     .RemoveCoins(new List<CryptoCoin>() { gtcCoin }),
 
                 new OkxExchange(coins, new ExchangeTickersInfo("-", CaseType.Uppercase, usdtCoin))
-                    .RemoveCoins(new List < CryptoCoin >() { fetCoin, rndrCoin, rplCoin, oceanCoin, stgCoin, gtcCoin }),
+                    .RemoveCoins(new List<CryptoCoin>() { fetCoin, rndrCoin, rplCoin, oceanCoin, stgCoin, gtcCoin, roseCoin, 
+                        ankrCoin, kavaCoin, achCoin, xrdCoin, vgxCoin }),
 
-                new BitmartExchange(coins, new ExchangeTickersInfo("_", CaseType.Uppercase, usdtCoin)),
+                new BitmartExchange(coins, new ExchangeTickersInfo("_", CaseType.Uppercase, usdtCoin))
+                    .RemoveCoins(new List<CryptoCoin> { roseCoin, vgxCoin }),
 
                 new BitstampExchange(coins, new ExchangeTickersInfo("/", CaseType.Uppercase, usdCoin))
-                    .RemoveCoins(new List<CryptoCoin>() { icpCoin, aptCoin, xemCoin, rplCoin, qtumCoin, oceanCoin, blurCoin, magicCoin, stgCoin, gtcCoin }),
+                    .RemoveCoins(new List<CryptoCoin>() { icpCoin, aptCoin, xemCoin, rplCoin, qtumCoin, oceanCoin, blurCoin, magicCoin, 
+                        stgCoin, gtcCoin, roseCoin, ankrCoin, kavaCoin, ksmCoin, rsrCoin, achCoin, xrdCoin, vgxCoin, arCoin }),
 
                 new BitfinexExchange(coins, new ExchangeTickersInfo("", CaseType.Uppercase, usdCoin, "t"))
-                    .RemoveCoins(new List<CryptoCoin>() { maticCoin, nearCoin, algoCoin, rndrCoin, xemCoin, rplCoin, qtumCoin, magicCoin, blurCoin, oceanCoin, gtcCoin })
+                    .RemoveCoins(new List<CryptoCoin>() { maticCoin, nearCoin, algoCoin, rndrCoin, xemCoin, rplCoin, qtumCoin, 
+                        magicCoin, blurCoin, oceanCoin, gtcCoin, roseCoin, ankrCoin, kavaCoin, rsrCoin, achCoin, slpCoin, vgxCoin, arCoin })
             };
 
 			var arbitrageChains = GetArbitrageChains(coins, exchanges).ToList();
