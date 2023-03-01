@@ -4,7 +4,7 @@
     {
         public decimal Bid { get; set; }
         public decimal Ask { get; set; }
-        public decimal Last => (Bid + Ask) / 2;
-        public decimal Divergence => Bid != 0 && Ask != 0 ? Math.Abs(Bid / Ask * 100 - 100) : 0;
+        public decimal Last => Math.Round((Bid + Ask) / 2, 6);
+        public decimal Spread => Bid != 0 && Ask != 0 ? Math.Round(Math.Abs(Bid / Ask * 100 - 100), 4) : 0;
     }
 }
