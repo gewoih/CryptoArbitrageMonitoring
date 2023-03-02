@@ -1,42 +1,30 @@
 ﻿using CryptoArbitrageMonitoring.Models.Enums;
-using System.Net.NetworkInformation;
+using CryptoArbitrageMonitoring.Utils;
 
 namespace CryptoArbitrageMonitoring.Models.Exchanges.Base
 {
     public abstract class Exchange
     {
         public abstract string Name { get; }
-        public ExchangeTickersInfo TickersInfo { get; set; }
-        protected abstract string _baseApiEndpoint { get; }
-        protected readonly Dictionary<CryptoCoin, MarketData> CoinPrices;
+        public abstract ExchangeTickersInfo TickersInfo { get; }
+        protected abstract string BaseApiEndpoint { get; }
+        protected readonly Dictionary<CryptoCoin, MarketData> coinPrices;
+        protected readonly HttpClient httpClient;
 
-        public Exchange(List<CryptoCoin> coins, ExchangeTickersInfo tickersInfo)
+        protected Exchange(HttpClient httpClient)
         {
-            TickersInfo = tickersInfo;
-            CoinPrices = coins.ToDictionary(key => key, value => new MarketData());
-        }
-
-        public Exchange RemoveCoins(List<CryptoCoin> coins)
-        {
-            foreach (var coin in coins)
-            {
-                CoinPrices.Remove(coin);
-            }
-
-            return this;
+            this.httpClient = httpClient;
+            coinPrices = (CoinsUtils.GetCoins()).ToDictionary(key => key, value => new MarketData());
         }
 
         public MarketData GetCoinMarketData(CryptoCoin coin)
         {
-            if (CoinPrices.TryGetValue(coin, out MarketData marketData)) 
-                return marketData;
-
-            return new MarketData();
+            return coinPrices[coin] ??= new();
         }
 
         public bool HasCoin(CryptoCoin coin)
         {
-            return CoinPrices.ContainsKey(coin);
+            return coinPrices.ContainsKey(coin);
         }
 
         public abstract Task UpdateCoinPrices();

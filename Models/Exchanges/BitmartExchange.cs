@@ -1,33 +1,38 @@
-﻿using CryptoArbitrageMonitoring.Models.Exchanges.Base;
+﻿using CryptoArbitrageMonitoring.Models.Enums;
+using CryptoArbitrageMonitoring.Models.Exchanges.Base;
 using Newtonsoft.Json.Linq;
 
 namespace CryptoArbitrageMonitoring.Models.Exchanges
 {
     public sealed class BitmartExchange : Exchange
     {
+        public BitmartExchange(HttpClient httpClient) : base(httpClient)
+        {
+        }
+
         public override string Name => "Bitmart";
-        protected override string _baseApiEndpoint => "https://api-cloud.bitmart.com/spot/v1/ticker";
-        
-        public BitmartExchange(List<CryptoCoin> coins, ExchangeTickersInfo tickersInfo) : base(coins, tickersInfo) { }
+        public override ExchangeTickersInfo TickersInfo => new("_", CaseType.Uppercase, new("USDT"));
+        protected override string BaseApiEndpoint => "https://api-cloud.bitmart.com/spot/v1/ticker";
 
         public override async Task UpdateCoinPrices()
         {
-            using var httpClient = new HttpClient();
-
-            var result = await httpClient.GetAsync(_baseApiEndpoint);
+            using var result = await httpClient.GetAsync(BaseApiEndpoint);
             var prices = JObject.Parse(await result.Content.ReadAsStringAsync());
 
-            foreach (var coin in CoinPrices.Keys.ToList())
+            foreach (var coin in coinPrices.Keys.ToList())
             {
-                try
-                {
-                    var coinData = prices["data"]["tickers"].First(p => p["symbol"].ToString() == GetTickerByCoin(coin));
-                    var bid = Convert.ToDecimal(coinData["best_bid"]);
-                    var ask = Convert.ToDecimal(coinData["best_ask"]);
+                var coinData = prices["data"]["tickers"].FirstOrDefault(p => p["symbol"].ToString() == GetTickerByCoin(coin));
 
-                    CoinPrices[coin] = new MarketData { Bid = bid, Ask = ask };
+                if (coinData == null)
+                {
+                    coinPrices.Remove(coin);
+                    continue;
                 }
-                catch { }
+
+                var bid = Convert.ToDecimal(coinData["best_bid"]);
+                var ask = Convert.ToDecimal(coinData["best_ask"]);
+
+                coinPrices[coin].Update(bid, ask);
             }
         }
     }

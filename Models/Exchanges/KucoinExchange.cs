@@ -1,29 +1,38 @@
-﻿using CryptoArbitrageMonitoring.Models.Exchanges.Base;
+﻿using CryptoArbitrageMonitoring.Models.Enums;
+using CryptoArbitrageMonitoring.Models.Exchanges.Base;
 using Newtonsoft.Json.Linq;
 
 namespace CryptoArbitrageMonitoring.Models.Exchanges
 {
     public sealed class KucoinExchange : Exchange
     {
+        public KucoinExchange(HttpClient httpClient) : base(httpClient)
+        {
+        }
+
         public override string Name => "Kucoin";
-        protected override string _baseApiEndpoint => "https://api.kucoin.com/api/v1/market/allTickers";
-        
-        public KucoinExchange(List<CryptoCoin> coins, ExchangeTickersInfo tickersInfo) : base(coins, tickersInfo) { }
+        public override ExchangeTickersInfo TickersInfo => new("-", CaseType.Uppercase, new("USDT"));
+        protected override string BaseApiEndpoint => "https://api.kucoin.com/api/v1/market/allTickers";
 
         public override async Task UpdateCoinPrices()
         {
-            using var httpClient = new HttpClient();
-
-            var result = await httpClient.GetAsync(_baseApiEndpoint);
+            using var result = await httpClient.GetAsync(BaseApiEndpoint);
             var prices = JObject.Parse(await result.Content.ReadAsStringAsync());
 
-            foreach (var coin in CoinPrices.Keys.ToList())
+            foreach (var coin in coinPrices.Keys.ToList())
             {
-                var coinData = prices["data"]["ticker"].First(p => p["symbol"].ToString() == GetTickerByCoin(coin));
+                var coinData = prices["data"]["ticker"].FirstOrDefault(p => p["symbol"].ToString() == GetTickerByCoin(coin));
+
+                if (coinData == null)
+                {
+                    coinPrices.Remove(coin);
+                    continue;
+                }
+
                 var bid = Convert.ToDecimal(coinData["buy"]);
                 var ask = Convert.ToDecimal(coinData["sell"]);
 
-                CoinPrices[coin] = new MarketData { Bid = bid, Ask = ask };
+                coinPrices[coin].Update(bid, ask);
             }
         }
     }

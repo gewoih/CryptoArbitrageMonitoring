@@ -1,29 +1,38 @@
-﻿using CryptoArbitrageMonitoring.Models.Exchanges.Base;
+﻿using CryptoArbitrageMonitoring.Models.Enums;
+using CryptoArbitrageMonitoring.Models.Exchanges.Base;
 using Newtonsoft.Json.Linq;
 
 namespace CryptoArbitrageMonitoring.Models.Exchanges
 {
     public sealed class BinanceExchange : Exchange
     {
+        public BinanceExchange(HttpClient httpClient) : base(httpClient)
+        {
+        }
+
         public override string Name => "Binance";
-        protected override string _baseApiEndpoint => "https://api.binance.com/api/v3/ticker/bookTicker";
-        
-        public BinanceExchange(List<CryptoCoin> coins, ExchangeTickersInfo tickersInfo) : base(coins, tickersInfo) { }
+        public override ExchangeTickersInfo TickersInfo => new ExchangeTickersInfo("", CaseType.Uppercase, new CryptoCoin("USDT"));
+        protected override string BaseApiEndpoint => "https://api.binance.com/api/v3/ticker/bookTicker";
 
         public override async Task UpdateCoinPrices()
         {
-            using var httpClient = new HttpClient();
-
-            var result = await httpClient.GetAsync(_baseApiEndpoint);
+            using var result = await httpClient.GetAsync(BaseApiEndpoint);
             var pricesArray = JArray.Parse(await result.Content.ReadAsStringAsync());
 
-            foreach (var coin in CoinPrices.Keys.ToList())
+            foreach (var coin in coinPrices.Keys.ToList())
             {
-                var coinData = pricesArray.First(p => p["symbol"].ToString() == GetTickerByCoin(coin));
+                var coinData = pricesArray.FirstOrDefault(p => p["symbol"].ToString() == GetTickerByCoin(coin));
+
+                if (coinData == null)
+                {
+                    coinPrices.Remove(coin);
+                    continue;
+                }
+
                 var bid = Convert.ToDecimal(coinData["bidPrice"]);
                 var ask = Convert.ToDecimal(coinData["askPrice"]);
 
-                CoinPrices[coin] = new MarketData { Bid = bid, Ask = ask };
+                coinPrices[coin].Update(bid, ask);
             }
         }
     }

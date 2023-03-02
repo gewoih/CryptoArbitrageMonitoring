@@ -1,8 +1,8 @@
 ﻿using CryptoArbitrageMonitoring.Extensions;
 using CryptoArbitrageMonitoring.Models;
-using CryptoArbitrageMonitoring.Models.Enums;
 using CryptoArbitrageMonitoring.Models.Exchanges;
 using CryptoArbitrageMonitoring.Models.Exchanges.Base;
+using CryptoArbitrageMonitoring.Utils;
 
 namespace CryptoArbitrageMonitoring
 {
@@ -12,89 +12,25 @@ namespace CryptoArbitrageMonitoring
         private static decimal exchangeComissionDivergence = Settings1.Default.ExchangeComissionDivergence;
         private static decimal minimumProfitDivergence = Settings1.Default.MinProfitDivergence;
 
-
-        private static CryptoCoin usdtCoin = new("USDT");
-        private static CryptoCoin usdCoin = new("USD");
-
-        private static CryptoCoin btcCoin = new("BTC");
-        private static CryptoCoin ethCoin = new("ETH");
-        private static CryptoCoin solCoin = new("SOL");
-        private static CryptoCoin dotCoin = new("DOT");
-        private static CryptoCoin adaCoin = new("ADA");
-        private static CryptoCoin maticCoin = new("MATIC");
-        private static CryptoCoin nearCoin = new("NEAR");
-        private static CryptoCoin grtCoin = new("GRT");
-        private static CryptoCoin ftmCoin = new("FTM");
-        private static CryptoCoin algoCoin = new("ALGO");
-        private static CryptoCoin icpCoin = new("ICP");
-        private static CryptoCoin fetCoin = new("FET");
-        private static CryptoCoin rndrCoin = new("RNDR");
-        private static CryptoCoin aptCoin = new("APT");
-        private static CryptoCoin xemCoin = new("XEM");
-        private static CryptoCoin rplCoin = new("RPL");
-        private static CryptoCoin qtumCoin = new("QTUM");
-        private static CryptoCoin magicCoin = new("MAGIC");
-        private static CryptoCoin blurCoin = new("BLUR");
-        private static CryptoCoin oceanCoin = new("OCEAN");
-        private static CryptoCoin stgCoin = new("STG");
-        private static CryptoCoin gtcCoin = new("GTC");
-        private static CryptoCoin roseCoin = new("ROSE");
-        private static CryptoCoin ankrCoin = new("ANKR");
-        private static CryptoCoin kavaCoin = new("KAVA");
-        private static CryptoCoin arCoin = new("AR");
-        private static CryptoCoin ksmCoin = new("KSM");
-        private static CryptoCoin rsrCoin = new("RSR");
-        private static CryptoCoin achCoin = new("ACH");
-        private static CryptoCoin slpCoin = new("SLP");
-        private static CryptoCoin xrdCoin = new("XRD");
-        private static CryptoCoin vgxCoin = new("VGX");
-
         static async Task Main(string[] args)
         {
-            var coins = new List<CryptoCoin>
-            {
-                btcCoin, ethCoin, solCoin, dotCoin, adaCoin,
-                maticCoin, nearCoin, grtCoin, ftmCoin, algoCoin,
-                icpCoin, fetCoin, rndrCoin, aptCoin, xemCoin, rplCoin,
-                qtumCoin, magicCoin, blurCoin, oceanCoin, stgCoin, gtcCoin,
-                roseCoin, ankrCoin, kavaCoin, ksmCoin, rsrCoin, achCoin, slpCoin, xrdCoin, vgxCoin, arCoin
-            };
-
+            using var httpClient = new HttpClient();
+            var coins = CoinsUtils.GetCoins();
+            
             var exchanges = new List<Exchange>
             {
-                new BinanceExchange(coins, new ExchangeTickersInfo("", CaseType.Uppercase, usdtCoin))
-                    .RemoveCoins(new List<CryptoCoin>() { blurCoin, xrdCoin }),
-
-                new KucoinExchange(coins, new ExchangeTickersInfo("-", CaseType.Uppercase, usdtCoin))
-                    .RemoveCoins(new List<CryptoCoin>() { qtumCoin, xrdCoin, vgxCoin }),
-
-                new HuobiExchange(coins, new ExchangeTickersInfo("", CaseType.Lowercase, usdtCoin))
-                    .RemoveCoins(new List<CryptoCoin>() { gtcCoin, roseCoin, slpCoin, xrdCoin, vgxCoin }),
-
-                new GateioExchange(coins, new ExchangeTickersInfo("_", CaseType.Uppercase, usdtCoin))
-                    .RemoveCoins(new List<CryptoCoin>() { gtcCoin }),
-
-                new OkxExchange(coins, new ExchangeTickersInfo("-", CaseType.Uppercase, usdtCoin))
-                    .RemoveCoins(new List<CryptoCoin>() { fetCoin, rndrCoin, rplCoin, oceanCoin, stgCoin, gtcCoin, roseCoin,
-                        ankrCoin, kavaCoin, achCoin, xrdCoin, vgxCoin }),
-
-                new BitmartExchange(coins, new ExchangeTickersInfo("_", CaseType.Uppercase, usdtCoin))
-                    .RemoveCoins(new List<CryptoCoin> { roseCoin, vgxCoin }),
-
-                new BitstampExchange(coins, new ExchangeTickersInfo("/", CaseType.Uppercase, usdCoin))
-                    .RemoveCoins(new List<CryptoCoin>() { icpCoin, aptCoin, xemCoin, rplCoin, qtumCoin, oceanCoin, blurCoin, magicCoin,
-                        stgCoin, gtcCoin, roseCoin, ankrCoin, kavaCoin, ksmCoin, rsrCoin, achCoin, xrdCoin, vgxCoin, arCoin }),
-
-                new BitfinexExchange(coins, new ExchangeTickersInfo("", CaseType.Uppercase, usdCoin, "t"))
-                    .RemoveCoins(new List<CryptoCoin>() { maticCoin, nearCoin, algoCoin, rndrCoin, xemCoin, rplCoin, qtumCoin,
-                        magicCoin, blurCoin, oceanCoin, gtcCoin, roseCoin, ankrCoin, kavaCoin, rsrCoin, achCoin, slpCoin, vgxCoin, arCoin })
+                new BinanceExchange(httpClient),
+                new BitfinexExchange(httpClient),
+                new BitmartExchange(httpClient),
+                new KucoinExchange(httpClient),
+                new HuobiExchange(httpClient),
+                new OkxExchange(httpClient),
+                new GateioExchange(httpClient),
+                new BitstampExchange(httpClient),
             };
 
             var arbitrageChains = GetArbitrageChains(coins, exchanges).ToList();
-
             await ArbitrageChainsFinder(exchanges, arbitrageChains);
-
-            Console.ReadKey();
         }
 
         private static async Task ArbitrageChainsFinder(List<Exchange> exchanges, List<ArbitrageChainInfo> arbitrageChains)
@@ -105,16 +41,22 @@ namespace CryptoArbitrageMonitoring
                 {
                     while (true)
                     {
-                        await exchange.UpdateCoinPrices();
+                        try
+                        {
+                            await exchange.UpdateCoinPrices();
+                        }
+                        catch (ArgumentNullException ex)
+                        {
+                        }
                     }
                 });
             }
 
+            var filteredChains = arbitrageChains
+                .Where(c => c.FromExchange.HasCoin(c.Coin) && c.ToExchange.HasCoin(c.Coin));
+            
             while (true)
             {
-                var filteredChains = arbitrageChains
-                    .Where(c => c.FromExchange.HasCoin(c.Coin) && c.ToExchange.HasCoin(c.Coin));
-
                 var topChains = filteredChains
                     .Where(c => c.FromExchangeMarketData.Spread < minimumBidAskSpread)
                     .Where(c => c.ToExchangeMarketData.Spread < minimumBidAskSpread)
