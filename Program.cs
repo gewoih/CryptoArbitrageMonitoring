@@ -15,8 +15,6 @@ namespace CryptoArbitrageMonitoring
         static async Task Main(string[] args)
         {
             using var httpClient = new HttpClient();
-            var coins = CoinsUtils.GetCoins();
-            
             var exchanges = new List<Exchange>
             {
                 new BinanceExchange(httpClient),
@@ -29,11 +27,16 @@ namespace CryptoArbitrageMonitoring
                 new BitstampExchange(httpClient),
             };
 
+            //Запускаем и ждем 1-е обновление (чтобы все биржи были заполнены)
+            await StartUpdatingExchangesMarketData(exchanges);
+            await Task.Delay(5000);
+
+            var coins = CoinsUtils.GetCoins();
             var arbitrageChains = GetArbitrageChains(coins, exchanges).ToList();
-            await ArbitrageChainsFinder(exchanges, arbitrageChains);
+            await ArbitrageChainsFinder(arbitrageChains);
         }
 
-        private static async Task ArbitrageChainsFinder(List<Exchange> exchanges, List<ArbitrageChainInfo> arbitrageChains)
+        private static async Task StartUpdatingExchangesMarketData(List<Exchange> exchanges)
         {
             foreach (var exchange in exchanges)
             {
@@ -51,13 +54,13 @@ namespace CryptoArbitrageMonitoring
                     }
                 });
             }
+        }
 
-            var filteredChains = arbitrageChains
-                .Where(c => c.FromExchange.HasCoin(c.Coin) && c.ToExchange.HasCoin(c.Coin));
-            
+        private static async Task ArbitrageChainsFinder(List<ArbitrageChainInfo> arbitrageChains)
+        {
             while (true)
             {
-                var topChains = filteredChains
+                var topChains = arbitrageChains
                     .Where(c => c.FromExchangeMarketData.Spread < minimumBidAskSpread)
                     .Where(c => c.ToExchangeMarketData.Spread < minimumBidAskSpread)
                     .Where(c => c.Difference != 0)
@@ -85,10 +88,11 @@ namespace CryptoArbitrageMonitoring
                         $"({topChain.FromExchange.Name}-{topChain.ToExchange.Name})");
                 }
 
-                if (topChains.Count() > 1)
+                if (topChains.Any())
+                {
                     Console.WriteLine(Environment.NewLine);
-
-                await Task.Delay(100);
+                    await Task.Delay(100);
+                }
             }
         }
 
@@ -100,7 +104,8 @@ namespace CryptoArbitrageMonitoring
             {
                 foreach (var exchangesCombination in exchangesCombinations)
                 {
-                    yield return new ArbitrageChainInfo(coin, exchangesCombination.Item1, exchangesCombination.Item2);
+                    if (exchangesCombination.Item1.HasCoin(coin) && exchangesCombination.Item2.HasCoin(coin))
+                        yield return new ArbitrageChainInfo(coin, exchangesCombination.Item1, exchangesCombination.Item2);
                 }
             }
         }

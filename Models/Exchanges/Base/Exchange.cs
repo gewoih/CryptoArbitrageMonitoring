@@ -19,7 +19,7 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges.Base
 
         public MarketData GetCoinMarketData(CryptoCoin coin)
         {
-            return coinPrices[coin] ??= new();
+            return coinPrices[coin];
         }
 
         public bool HasCoin(CryptoCoin coin)
