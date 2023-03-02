@@ -1,8 +1,8 @@
-﻿using CryptoArbitrageMonitoring.Models.Enums;
-using CryptoArbitrageMonitoring.Models.Exchanges.Base;
+﻿using CoreLibrary.Models.Enums;
+using CoreLibrary.Models.Exchanges.Base;
 using Newtonsoft.Json.Linq;
 
-namespace CryptoArbitrageMonitoring.Models.Exchanges
+namespace CoreLibrary.Models.Exchanges
 {
     public sealed class OkxExchange : Exchange
     {
@@ -13,7 +13,7 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges
         public override string Name => "Okx";
         public override ExchangeTickersInfo TickersInfo => new("-", CaseType.Uppercase, new("USDT"));
         protected override string BaseApiEndpoint => "https://www.okx.com/api/v5/market/tickers?instType=SPOT";
-        
+
         public override async Task UpdateCoinPrices()
         {
             using var result = await httpClient.GetAsync(BaseApiEndpoint);

@@ -1,6 +1,6 @@
-﻿using CryptoArbitrageMonitoring.Models.Enums;
+﻿using CoreLibrary.Models.Enums;
 
-namespace CryptoArbitrageMonitoring.Models
+namespace CoreLibrary.Models
 {
     public sealed class ExchangeTickersInfo
     {
@@ -8,7 +8,7 @@ namespace CryptoArbitrageMonitoring.Models
         public readonly CaseType CaseType;
         public readonly CryptoCoin SecondCoin;
         public readonly string Prefix;
-        
+
         public ExchangeTickersInfo(string separator, CaseType caseType, CryptoCoin secondCoin, string prefix = "")
         {
             Separator = separator;

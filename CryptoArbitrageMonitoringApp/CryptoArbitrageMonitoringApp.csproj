@@ -16,8 +16,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CoreLibrary\CoreLibrary.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,9 +32,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Coins.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Settings1.settings">
       <Generator>PublicSettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings1.Designer.cs</LastGenOutput>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

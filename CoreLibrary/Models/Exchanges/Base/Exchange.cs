@@ -1,7 +1,7 @@
-﻿using CryptoArbitrageMonitoring.Models.Enums;
-using CryptoArbitrageMonitoring.Utils;
+﻿using CoreLibrary.Models.Enums;
+using CoreLibrary.Utils;
 
-namespace CryptoArbitrageMonitoring.Models.Exchanges.Base
+namespace CoreLibrary.Models.Exchanges.Base
 {
     public abstract class Exchange
     {
@@ -14,7 +14,7 @@ namespace CryptoArbitrageMonitoring.Models.Exchanges.Base
         protected Exchange(HttpClient httpClient)
         {
             this.httpClient = httpClient;
-            coinPrices = (CoinsUtils.GetCoins()).ToDictionary(key => key, value => new MarketData());
+            coinPrices = CoinsUtils.GetCoins().ToDictionary(key => key, value => new MarketData());
         }
 
         public MarketData GetCoinMarketData(CryptoCoin coin)

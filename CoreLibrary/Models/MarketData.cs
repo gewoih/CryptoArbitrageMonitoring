@@ -1,4 +1,4 @@
-﻿namespace CryptoArbitrageMonitoring.Models
+﻿namespace CoreLibrary.Models
 {
     public sealed class MarketData
     {

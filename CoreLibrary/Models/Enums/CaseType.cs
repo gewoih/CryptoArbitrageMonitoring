@@ -1,4 +1,4 @@
-﻿namespace CryptoArbitrageMonitoring.Models.Enums
+﻿namespace CoreLibrary.Models.Enums
 {
     public enum CaseType
     {

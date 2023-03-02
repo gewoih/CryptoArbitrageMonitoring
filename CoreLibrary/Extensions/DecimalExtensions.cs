@@ -1,4 +1,4 @@
-﻿namespace CryptoArbitrageMonitoring.Extensions
+﻿namespace CoreLibrary.Extensions
 {
     public static class DecimalExtensions
     {

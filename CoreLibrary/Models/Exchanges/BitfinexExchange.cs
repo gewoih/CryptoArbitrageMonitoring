@@ -1,8 +1,8 @@
-﻿using CryptoArbitrageMonitoring.Models.Enums;
-using CryptoArbitrageMonitoring.Models.Exchanges.Base;
+﻿using CoreLibrary.Models.Enums;
+using CoreLibrary.Models.Exchanges.Base;
 using Newtonsoft.Json.Linq;
 
-namespace CryptoArbitrageMonitoring.Models.Exchanges
+namespace CoreLibrary.Models.Exchanges
 {
     public sealed class BitfinexExchange : Exchange
     {

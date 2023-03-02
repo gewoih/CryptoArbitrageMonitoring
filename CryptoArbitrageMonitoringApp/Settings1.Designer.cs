@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace CryptoArbitrageMonitoring {
+namespace CryptoArbitrageMonitoringApp {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
