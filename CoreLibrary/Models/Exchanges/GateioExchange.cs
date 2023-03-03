@@ -29,10 +29,22 @@ namespace CoreLibrary.Models.Exchanges
                     continue;
                 }
 
-                var bid = Convert.ToDecimal(coinData["highest_bid"]);
-                var ask = Convert.ToDecimal(coinData["lowest_ask"]);
 
-                coinPrices[coin].Update(bid, ask);
+                var bid = 0m;
+                var ask = 0m;
+                try
+                {
+                    bid = Convert.ToDecimal(coinData["highest_bid"]);
+                    ask = Convert.ToDecimal(coinData["lowest_ask"]);
+                }
+                catch
+                {
+
+                }
+                finally
+                {
+                    coinPrices[coin].AddTick(bid, ask);
+                }
             }
         }
     }

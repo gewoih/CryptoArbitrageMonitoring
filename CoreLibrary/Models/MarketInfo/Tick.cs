@@ -1,13 +1,14 @@
-﻿namespace CoreLibrary.Models
+﻿namespace CoreLibrary.Models.MarketInfo
 {
-    public sealed class MarketData
+    public sealed class Tick
     {
-        public decimal Bid { get; private set; }
-        public decimal Ask { get; private set; }
+        public readonly decimal Bid;
+        public readonly decimal Ask;
+        public readonly DateTime Time;
         public decimal Last => Math.Round((Bid + Ask) / 2, 6);
         public decimal Spread => Bid != 0 && Ask != 0 ? Math.Round(Math.Abs(Bid / Ask * 100 - 100), 4) : 0;
-
-        public void Update(decimal bid, decimal ask)
+        
+        public Tick(decimal bid, decimal ask)
         {
             Bid = bid;
             Ask = ask;

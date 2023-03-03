@@ -1,4 +1,5 @@
 ﻿using CoreLibrary.Models.Enums;
+using CoreLibrary.Models.MarketInfo;
 using CoreLibrary.Utils;
 
 namespace CoreLibrary.Models.Exchanges.Base
@@ -7,6 +8,7 @@ namespace CoreLibrary.Models.Exchanges.Base
     {
         public abstract string Name { get; }
         public abstract ExchangeTickersInfo TickersInfo { get; }
+        public bool IsAllMarketDataLoaded => !coinPrices.Values.Any(v => v.LastUpdate == DateTime.MinValue);
         protected abstract string BaseApiEndpoint { get; }
         protected readonly Dictionary<CryptoCoin, MarketData> coinPrices;
         protected readonly HttpClient httpClient;

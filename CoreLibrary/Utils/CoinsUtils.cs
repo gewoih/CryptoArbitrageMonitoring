@@ -8,6 +8,7 @@ namespace CoreLibrary.Utils
         {
             return File.ReadAllLines("Coins.txt")
                     .Select(c => new CryptoCoin(c))
+                    .Distinct()
                     .ToList();
         }
     }

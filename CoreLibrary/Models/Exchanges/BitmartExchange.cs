@@ -32,7 +32,7 @@ namespace CoreLibrary.Models.Exchanges
                 var bid = Convert.ToDecimal(coinData["best_bid"]);
                 var ask = Convert.ToDecimal(coinData["best_ask"]);
 
-                coinPrices[coin].Update(bid, ask);
+                coinPrices[coin].AddTick(bid, ask);
             }
         }
     }

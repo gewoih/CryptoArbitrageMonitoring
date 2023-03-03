@@ -9,7 +9,10 @@
       <Value Profile="(Default)">0.8</Value>
     </Setting>
     <Setting Name="MinProfitDivergence" Type="System.Decimal" Scope="User">
-      <Value Profile="(Default)">0</Value>
+      <Value Profile="(Default)">0.5</Value>
+    </Setting>
+    <Setting Name="DivergencePeriod" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">50</Value>
     </Setting>
   </Settings>
 </SettingsFile>

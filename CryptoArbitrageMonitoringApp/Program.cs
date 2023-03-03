@@ -2,6 +2,7 @@
 using CoreLibrary.Models.Exchanges;
 using CoreLibrary.Models.Exchanges.Base;
 using CoreLibrary.Utils;
+using Newtonsoft.Json.Linq;
 
 namespace CryptoArbitrageMonitoringApp
 {
@@ -10,23 +11,10 @@ namespace CryptoArbitrageMonitoringApp
         private static readonly decimal minimumBidAskSpread = Settings1.Default.MinBidAskSpread;
         private static readonly decimal exchangeComissionDivergence = Settings1.Default.ExchangeComissionDivergence;
         private static readonly decimal minimumProfitDivergence = Settings1.Default.MinProfitDivergence;
+        private static readonly int divergencePeriod = Settings1.Default.DivergencePeriod;
 
         static async Task Main(string[] args)
         {
-            //using var httpClient = new HttpClient();
-
-            //using var result = await httpClient.GetAsync("https://api.binance.com/api/v3/ticker/bookTicker");
-            //var pricesArray = JArray.Parse(await result.Content.ReadAsStringAsync());
-
-            //var coins = pricesArray
-            //                .Where(p => p["symbol"].ToString().EndsWith("USDT"))
-            //                .Select(p => p["symbol"].ToString().Replace("USDT", ""));
-
-            //foreach (var coin in coins)
-            //{
-            //    Console.WriteLine(coin);
-            //}
-
             using var httpClient = new HttpClient();
             var exchanges = new List<Exchange>
             {
@@ -42,11 +30,25 @@ namespace CryptoArbitrageMonitoringApp
 
             //Запускаем и ждем 1-е обновление (чтобы все биржи были заполнены)
             StartUpdatingExchangesMarketData(exchanges);
-            await Task.Delay(5000);
+            await WaitForAllMarketDataLoaded(exchanges);
 
             var coins = CoinsUtils.GetCoins();
             var arbitrageChains = GetArbitrageChains(coins, exchanges).ToList();
             await ArbitrageChainsFinder(arbitrageChains);
+        }
+
+        private static async Task WaitForAllMarketDataLoaded(List<Exchange> exchanges)
+        {
+            while (true)
+            {
+                if (exchanges.Any(exchange => !exchange.IsAllMarketDataLoaded))
+                {
+                    await Task.Delay(1000);
+                    continue;
+                }
+                    
+                return;
+            }
         }
 
         private static void StartUpdatingExchangesMarketData(List<Exchange> exchanges)
@@ -63,6 +65,8 @@ namespace CryptoArbitrageMonitoringApp
                         }
                         catch
                         {
+                            await Task.Delay(1000);
+                            continue;
                         }
                     }
                 });
@@ -73,23 +77,34 @@ namespace CryptoArbitrageMonitoringApp
         {
             while (true)
             {
-                var topChains = arbitrageChains
-                    .Where(c => c.FromExchangeMarketData.Spread < minimumBidAskSpread &&
-                        c.ToExchangeMarketData.Spread < minimumBidAskSpread &&
-                        c.Difference != 0 &&
-                        c.Divergence >= exchangeComissionDivergence + minimumProfitDivergence)
-                    .OrderByDescending(c => c.Divergence)
-                    .Take(10);
-
-                foreach (var topChain in topChains)
+                try
                 {
-                    Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: {topChain}");
+                    var topChains = arbitrageChains
+                        .Where(c =>
+                            c.FromExchangeMarketData.GetLastTick().Spread < minimumBidAskSpread &&
+                            c.ToExchangeMarketData.GetLastTick().Spread < minimumBidAskSpread &&
+                            c.FromExchangeMarketData.GetLastTick().Last > 0.001m &&
+                            c.ToExchangeMarketData.GetLastTick().Last > 0.001m &&
+                            c.GetCurrentDifference() != 0 &&
+                            c.GetTotalDivergence() != 0 &&
+                            c.GetTotalDivergence() >= exchangeComissionDivergence + minimumProfitDivergence)
+                        .OrderByDescending(c => c.GetTotalDivergence())
+                        .Take(10);
+
+                    foreach (var topChain in topChains)
+                    {
+                        Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: {topChain}");
+                    }
+
+                    if (topChains.Any())
+                    {
+                        Console.WriteLine();
+                        await Task.Delay(200);
+                    }
                 }
-
-                if (topChains.Any())
+                catch
                 {
-                    Console.WriteLine();
-                    await Task.Delay(200);
+                    continue;
                 }
             }
         }
@@ -99,7 +114,7 @@ namespace CryptoArbitrageMonitoringApp
             return coins
                 .SelectMany(coin => GetExchangesCombinations(exchanges)
                     .Where(exchangePair => exchangePair.Item1.HasCoin(coin) && exchangePair.Item2.HasCoin(coin))
-                    .Select(exchangePair => new ArbitrageChainInfo(coin, exchangePair.Item1, exchangePair.Item2)));
+                    .Select(exchangePair => new ArbitrageChainInfo(coin, exchangePair.Item1, exchangePair.Item2, divergencePeriod)));
         }
 
         private static IEnumerable<Tuple<Exchange, Exchange>> GetExchangesCombinations(List<Exchange> exchanges)

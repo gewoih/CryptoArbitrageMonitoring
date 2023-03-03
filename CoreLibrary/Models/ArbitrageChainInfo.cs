@@ -1,44 +1,103 @@
 ﻿using CoreLibrary.Extensions;
 using CoreLibrary.Models.Exchanges.Base;
+using CoreLibrary.Models.MarketInfo;
 
 namespace CoreLibrary.Models
 {
-    public sealed class ArbitrageChainInfo
-    {
-        public readonly CryptoCoin Coin;
-        public readonly Exchange FromExchange;
-        public readonly Exchange ToExchange;
+	public sealed class ArbitrageChainInfo
+	{
+		public readonly CryptoCoin Coin;
+		public readonly Exchange FromExchange;
+		public readonly Exchange ToExchange;
+		public readonly int DivergencePeriod;
 
-        public ArbitrageChainInfo(CryptoCoin coin, Exchange fromExchange, Exchange toExchange)
-        {
-            Coin = coin;
-            FromExchange = fromExchange;
-            ToExchange = toExchange;
+		public ArbitrageChainInfo(CryptoCoin coin, Exchange fromExchange, Exchange toExchange, int divergencePeriod)
+		{
+			Coin = coin;
+			FromExchange = fromExchange;
+			ToExchange = toExchange;
+			DivergencePeriod = divergencePeriod;
+		}
+
+		public MarketData FromExchangeMarketData => FromExchange.GetCoinMarketData(Coin);
+		public MarketData ToExchangeMarketData => ToExchange.GetCoinMarketData(Coin);
+
+        public decimal GetTotalDivergence()
+		{
+			var standardDivergence = GetStandardDivergence();
+			var currentDivergence = GetCurrentDivergence();
+
+			if (standardDivergence == 0 ||
+				currentDivergence == 0 ||
+				currentDivergence < standardDivergence)
+				return 0;
+
+			return Math.Round(currentDivergence - standardDivergence, 6);
+		}
+
+		public decimal GetStandardDifference()
+		{
+            var fromExchangeSMA = FromExchangeMarketData.GetSMA(DivergencePeriod);
+            var toExchangeSMA = ToExchangeMarketData.GetSMA(DivergencePeriod);
+
+            if (fromExchangeSMA == 0 || toExchangeSMA == 0)
+                return 0;
+
+			return Math.Round(fromExchangeSMA - toExchangeSMA, 6);
         }
 
-        public MarketData FromExchangeMarketData => FromExchange.GetCoinMarketData(Coin);
-        public MarketData ToExchangeMarketData => ToExchange.GetCoinMarketData(Coin);
-        public decimal Difference => Math.Round(FromExchangeMarketData.Last - ToExchangeMarketData.Last, 6);
-        public decimal Divergence => FromExchangeMarketData.Last != 0 && ToExchangeMarketData.Last != 0 ? Math.Round(FromExchangeMarketData.Last / ToExchangeMarketData.Last * 100 - 100, 6) : 0;
+		public decimal GetCurrentDifference()
+		{
+            var fromExchangeLast = FromExchangeMarketData.GetLastTick().Last;
+            var toExchangeLast = ToExchangeMarketData.GetLastTick().Last;
 
-        public override string? ToString()
-        {
-            var firstExchangeBid = FromExchangeMarketData.Bid.Normalize();
-            var firstExchangeAsk = FromExchangeMarketData.Ask.Normalize();
-            var firstExchangeLast = FromExchangeMarketData.Last.Normalize();
-            var firstExchangeSpread = FromExchangeMarketData.Spread.Normalize();
+            if (fromExchangeLast == 0 || toExchangeLast == 0)
+                return 0;
 
-            var secondExchangeBid = ToExchangeMarketData.Bid.Normalize();
-            var secondExchangeAsk = ToExchangeMarketData.Ask.Normalize();
-            var secondExchangeLast = ToExchangeMarketData.Last.Normalize();
-            var secondExchangeSpread = ToExchangeMarketData.Spread.Normalize();
-
-            return $"(B:{firstExchangeBid}; A:{firstExchangeAsk}; L:{firstExchangeLast}; S:{firstExchangeSpread}%); " +
-                        $"(B:{secondExchangeBid}; A:{secondExchangeAsk}; L:{secondExchangeLast}; S:{secondExchangeSpread}%); " +
-                        $"{Difference.Normalize()}; " +
-                        $"{Divergence.Normalize()}%; " +
-                        $"{Coin.Name}" +
-                        $"({FromExchange.Name}-{ToExchange.Name})";
+			return Math.Round(fromExchangeLast - toExchangeLast, 6);
         }
-    }
+
+		public decimal GetStandardDivergence()
+		{
+            var fromExchangeSMA = FromExchangeMarketData.GetSMA(DivergencePeriod);
+            var toExchangeSMA = ToExchangeMarketData.GetSMA(DivergencePeriod);
+
+			if (fromExchangeSMA == 0 || toExchangeSMA == 0)
+				return 0;
+
+			return Math.Round(Math.Abs(fromExchangeSMA / toExchangeSMA * 100 - 100), 6);
+        }
+
+		public decimal GetCurrentDivergence()
+		{
+            var fromExchangeLast = FromExchangeMarketData.GetLastTick().Last;
+            var toExchangeLast = ToExchangeMarketData.GetLastTick().Last;
+
+			if (fromExchangeLast == 0 || toExchangeLast == 0)
+				return 0;
+
+            return Math.Round(Math.Abs(fromExchangeLast / toExchangeLast * 100 - 100), 6);
+        }
+
+		public override string? ToString()
+		{
+			var firstExchangeLastTick = FromExchangeMarketData.GetLastTick();
+			var firstExchangeBid = firstExchangeLastTick.Bid.Normalize();
+			var firstExchangeAsk = firstExchangeLastTick.Ask.Normalize();
+			var firstExchangeLast = firstExchangeLastTick.Last.Normalize();
+			var firstExchangeSpread = firstExchangeLastTick.Spread.Normalize();
+
+			var secondExchangeLastTick = ToExchangeMarketData.GetLastTick();
+			var secondExchangeBid = secondExchangeLastTick.Bid.Normalize();
+			var secondExchangeAsk = secondExchangeLastTick.Ask.Normalize();
+			var secondExchangeLast = secondExchangeLastTick.Last.Normalize();
+			var secondExchangeSpread = secondExchangeLastTick.Spread.Normalize();
+
+			return $"[B:{firstExchangeBid}; A:{firstExchangeAsk}; L:{firstExchangeLast}; S:{firstExchangeSpread}%]; " +
+						$"[B:{secondExchangeBid}; A:{secondExchangeAsk}; L:{secondExchangeLast}; S:{secondExchangeSpread}%]; " +
+						$"DIFF:[S:{GetCurrentDifference().Normalize()}; C:{GetCurrentDifference().Normalize()}]; " +
+						$"DIV:[S:{GetStandardDivergence().Normalize()}%; C:{GetCurrentDivergence().Normalize()}%; T:{GetTotalDivergence().Normalize()}%]; " +
+						$"[{Coin.Name}, {FromExchange.Name}:{ToExchange.Name}]";
+		}
+	}
 }

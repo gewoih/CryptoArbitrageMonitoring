@@ -49,13 +49,25 @@ namespace CryptoArbitrageMonitoringApp {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("0.5")]
         public decimal MinProfitDivergence {
             get {
                 return ((decimal)(this["MinProfitDivergence"]));
             }
             set {
                 this["MinProfitDivergence"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("50")]
+        public int DivergencePeriod {
+            get {
+                return ((int)(this["DivergencePeriod"]));
+            }
+            set {
+                this["DivergencePeriod"] = value;
             }
         }
     }
