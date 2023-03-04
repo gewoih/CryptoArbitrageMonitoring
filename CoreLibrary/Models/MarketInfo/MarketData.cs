@@ -5,12 +5,12 @@
         public readonly List<Tick> Ticks = new();
         public DateTime LastUpdate { get; private set; }
 
-        public void AddTick(decimal bid, decimal ask)
+        public void AddTick(decimal bid, decimal ask, decimal last)
         {
-            if (Ticks.Any() && (bid == Ticks.Last().Bid || ask == Ticks.Last().Ask))
+            if (Ticks.Any() && last == Ticks.Last().Last)
                 return;
 
-            Ticks.Add(new(bid, ask));
+            Ticks.Add(new(bid, ask, last));
             LastUpdate = DateTime.UtcNow;
         }
 
@@ -23,7 +23,7 @@
                 return 0;
 
             if (Ticks.Count > period)
-                Ticks.RemoveAt(0);
+                Ticks.RemoveRange(0, Ticks.Count - period);
 
             return Ticks
                     .TakeLast(period)
@@ -37,7 +37,7 @@
             if (lastTick != null)
                 return lastTick;
 
-            return new(0, 0);
+            return new(0, 0, 0);
         }
     }
 }

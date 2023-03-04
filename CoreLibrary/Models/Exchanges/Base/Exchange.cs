@@ -44,5 +44,11 @@ namespace CoreLibrary.Models.Exchanges.Base
 
             return ticker;
         }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is Exchange exchange &&
+                   Name == exchange.Name;
+        }
     }
 }

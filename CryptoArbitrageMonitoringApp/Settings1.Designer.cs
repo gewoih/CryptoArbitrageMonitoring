@@ -25,18 +25,6 @@ namespace CryptoArbitrageMonitoringApp {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0.2")]
-        public decimal MinBidAskSpread {
-            get {
-                return ((decimal)(this["MinBidAskSpread"]));
-            }
-            set {
-                this["MinBidAskSpread"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0.8")]
         public decimal ExchangeComissionDivergence {
             get {

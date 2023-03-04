@@ -2,9 +2,6 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="CryptoArbitrageMonitoringApp" GeneratedClassName="Settings1">
   <Profiles />
   <Settings>
-    <Setting Name="MinBidAskSpread" Type="System.Decimal" Scope="User">
-      <Value Profile="(Default)">0.2</Value>
-    </Setting>
     <Setting Name="ExchangeComissionDivergence" Type="System.Decimal" Scope="User">
       <Value Profile="(Default)">0.8</Value>
     </Setting>

@@ -99,5 +99,18 @@ namespace CoreLibrary.Models
 						$"DIV:[S:{GetStandardDivergence().Normalize()}%; C:{GetCurrentDivergence().Normalize()}%; T:{GetTotalDivergence().Normalize()}%]; " +
 						$"[{Coin.Name}, {FromExchange.Name}:{ToExchange.Name}]";
 		}
-	}
+
+        public override bool Equals(object? obj)
+        {
+            return obj is ArbitrageChainInfo info &&
+                   EqualityComparer<CryptoCoin>.Default.Equals(Coin, info.Coin) &&
+                   EqualityComparer<Exchange>.Default.Equals(FromExchange, info.FromExchange) &&
+                   EqualityComparer<Exchange>.Default.Equals(ToExchange, info.ToExchange);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Coin, FromExchange, ToExchange);
+        }
+    }
 }
