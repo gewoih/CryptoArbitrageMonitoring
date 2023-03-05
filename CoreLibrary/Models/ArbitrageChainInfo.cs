@@ -35,26 +35,15 @@ namespace CoreLibrary.Models
 			return Math.Round(currentDivergence - standardDivergence, 6);
 		}
 
-		public decimal GetStandardDifference()
-		{
-            var fromExchangeSMA = FromExchangeMarketData.GetSMA(DivergencePeriod);
-            var toExchangeSMA = ToExchangeMarketData.GetSMA(DivergencePeriod);
-
-            if (fromExchangeSMA == 0 || toExchangeSMA == 0)
-                return 0;
-
-			return Math.Round(fromExchangeSMA - toExchangeSMA, 6);
-        }
-
 		public decimal GetCurrentDifference()
 		{
-            var fromExchangeLast = FromExchangeMarketData.GetLastTick().Last;
-            var toExchangeLast = ToExchangeMarketData.GetLastTick().Last;
+            var fromExchangeAsk = FromExchangeMarketData.GetLastTick().Ask;
+            var toExchangeBid = ToExchangeMarketData.GetLastTick().Bid;
 
-            if (fromExchangeLast == 0 || toExchangeLast == 0)
+            if (fromExchangeAsk == 0 || toExchangeBid == 0)
                 return 0;
 
-			return Math.Round(fromExchangeLast - toExchangeLast, 6);
+			return Math.Round(fromExchangeAsk - toExchangeBid, 6);
         }
 
 		public decimal GetStandardDivergence()
@@ -70,13 +59,13 @@ namespace CoreLibrary.Models
 
 		public decimal GetCurrentDivergence()
 		{
-            var fromExchangeLast = FromExchangeMarketData.GetLastTick().Last;
-            var toExchangeLast = ToExchangeMarketData.GetLastTick().Last;
+            var fromExchangeAsk = FromExchangeMarketData.GetLastTick().Ask;
+            var toExchangeBid = ToExchangeMarketData.GetLastTick().Bid;
 
-			if (fromExchangeLast == 0 || toExchangeLast == 0)
+			if (fromExchangeAsk == 0 || toExchangeBid == 0)
 				return 0;
 
-            return Math.Round(Math.Abs(fromExchangeLast / toExchangeLast * 100 - 100), 6);
+            return Math.Round(Math.Abs(fromExchangeAsk / toExchangeBid * 100 - 100), 6);
         }
 
 		public override string? ToString()
