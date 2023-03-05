@@ -36,5 +36,10 @@ namespace CoreLibrary.Models.Exchanges
                 coinPrices[coin].AddTick(bid, ask, last);
             }
         }
+
+        protected override Task RemoveCoinsWithoutMarginTrading()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

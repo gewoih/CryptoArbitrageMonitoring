@@ -1,5 +1,4 @@
-﻿using CoreLibrary.Models;
-using CoreLibrary.Models.Enums;
+﻿using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
 using Newtonsoft.Json.Linq;
 
@@ -36,6 +35,11 @@ namespace CoreLibrary.Models.Exchanges
 
                 coinPrices[coin].AddTick(bid, ask, last);
             }
+        }
+
+        protected override Task RemoveCoinsWithoutMarginTrading()
+        {
+            throw new NotImplementedException();
         }
     }
 }

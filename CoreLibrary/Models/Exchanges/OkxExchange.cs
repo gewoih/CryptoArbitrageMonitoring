@@ -35,6 +35,26 @@ namespace CoreLibrary.Models.Exchanges
 
                 coinPrices[coin].AddTick(bid, ask, last);
             }
+
+            if (!IsCoinsWithoutMarginRemoved)
+            {
+                await RemoveCoinsWithoutMarginTrading();
+                IsCoinsWithoutMarginRemoved = true;
+            }
+        }
+
+        protected override async Task RemoveCoinsWithoutMarginTrading()
+        {
+            using var result = await httpClient.GetAsync("https://www.okx.com/api/v5/public/instruments?instType=MARGIN");
+            var coinsData = JObject.Parse(await result.Content.ReadAsStringAsync());
+
+            foreach (var coin in coinPrices.Keys.ToList())
+            {
+                var coinData = coinsData["data"].FirstOrDefault(d => d["instId"].ToString() == GetTickerByCoin(coin));
+                
+                if (coinData == null)
+                    coinPrices.Remove(coin);
+            }
         }
     }
 }
