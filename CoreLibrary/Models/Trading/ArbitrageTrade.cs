@@ -38,8 +38,7 @@ namespace CoreLibrary.Models.Trading
             {
                 return
                     $"[{coinName}, {fromExchangeName}-{toExchangeName}] " +
-                    $"[LONG {LongTrade.Profit.Normalize()}$]; " +
-                    $"[SHORT {ShortTrade.Profit.Normalize()}$]; " +
+                    $"[LONG {LongTrade.Profit.Normalize()}$, SHORT {ShortTrade.Profit.Normalize()}$]; " +
                     $"[TOTAL {Math.Round(ProfitPercent, 2)}%, Time: {TimeInTrade}];" +
                     $"{Environment.NewLine}" +
                     $"FOR CHAIN: {ArbitrageChain}";

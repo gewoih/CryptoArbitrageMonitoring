@@ -20,13 +20,21 @@ namespace CoreLibrary.Models.Services
 
 		public IEnumerable<ArbitrageChain> GetUpdatedChains(decimal minimumTotalDivergence)
 		{
-			var chains = _chains
-							.Where(chain =>
-								chain.GetTotalDivergence() >= minimumTotalDivergence &&
-								chain.FromExchangeMarketData.GetLastTick().Ask < chain.ToExchangeMarketData.GetLastTick().Bid)
-							.OrderByDescending(c => c.GetTotalDivergence());
+			foreach (var chain in _chains)
+			{
+				var standardDivergence = chain.GetStandardDivergence();
+				var totalDivergence = chain.GetTotalDivergence();
+				var fromExchangeLastTick = chain.FromExchangeMarketData.GetLastTick();
+				var toExchangeLastTick = chain.ToExchangeMarketData.GetLastTick();
 
-			return chains;
+				if (standardDivergence != 0 &&
+					totalDivergence >= minimumTotalDivergence &&
+					fromExchangeLastTick.Ask < toExchangeLastTick.Bid &&
+					(fromExchangeLastTick.Spread + toExchangeLastTick.Spread) < totalDivergence)
+				{
+					yield return chain;
+				}
+			}
 		}
 
 		private IEnumerable<ArbitrageChain> GetArbitrageChains(List<CryptoCoin> coins, List<Exchange> exchanges)
