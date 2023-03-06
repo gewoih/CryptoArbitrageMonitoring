@@ -7,12 +7,8 @@ namespace CoreLibrary.Models.Exchanges
 {
     public sealed class HuobiExchange : Exchange
     {
-        public HuobiExchange(HttpClient httpClient) : base(httpClient)
-        {
-        }
-
         public override string Name => "Huobi";
-        public override ExchangeTickersInfo TickersInfo => new("", CaseType.Lowercase, new("USDT"));
+        public override TickersInfo TickersInfo => new("", CaseType.Lowercase, new("USDT"));
         protected override string BaseApiEndpoint => "https://api.huobi.pro/market/tickers";
 
         public override async Task UpdateCoinPrices()

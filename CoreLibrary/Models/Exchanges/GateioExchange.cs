@@ -6,12 +6,8 @@ namespace CoreLibrary.Models.Exchanges
 {
     public sealed class GateioExchange : Exchange
     {
-        public GateioExchange(HttpClient httpClient) : base(httpClient)
-        {
-        }
-
         public override string Name => "Gateio";
-        public override ExchangeTickersInfo TickersInfo => new("_", CaseType.Uppercase, new("USDT"));
+        public override TickersInfo TickersInfo => new("_", CaseType.Uppercase, new("USDT"));
         protected override string BaseApiEndpoint => "https://api.gateio.ws/api/v4/spot/tickers";
 
         public override async Task UpdateCoinPrices()

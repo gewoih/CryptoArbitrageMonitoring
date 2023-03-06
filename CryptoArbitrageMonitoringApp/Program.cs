@@ -1,7 +1,6 @@
-﻿using CoreLibrary.Extensions;
-using CoreLibrary.Models;
-using CoreLibrary.Models.Exchanges;
+﻿using CoreLibrary.Models.Exchanges;
 using CoreLibrary.Models.Exchanges.Base;
+using CoreLibrary.Models.Services;
 using CoreLibrary.Models.Trading;
 using CoreLibrary.Utils;
 
@@ -9,48 +8,50 @@ namespace CryptoArbitrageMonitoringApp
 {
 	internal class Program
 	{
-		private static decimal exchangeCommission;
-		private static decimal minimumProfit;
-		private static int smaDivergencePeriod;
-		private static readonly List<ArbitrageTrade> Trades = new();
+		private static decimal _minimumTotalDivergence;
+		private static int _divergencePeriod;
+		private static int _minimumSecondsInTrade;
+		private static ArbitrageFinder _arbitrageFinder;
+		private static ArbitrageTradesManager _tradesManager;
 
 		static async Task Main(string[] args)
 		{
-			using var httpClient = new HttpClient();
 			var exchanges = new List<Exchange>
 			{
-				new BinanceExchange(httpClient),
-				new BitfinexExchange(httpClient),
-				new BitmartExchange(httpClient),
-				new KucoinExchange(httpClient),
-				new HuobiExchange(httpClient),
-				new OkxExchange(httpClient),
-				new GateioExchange(httpClient),
-				new BitstampExchange(httpClient),
+				new BinanceExchange(),
+				//new BitfinexExchange(),
+				new BitmartExchange(),
+				new KucoinExchange(),
+				new HuobiExchange(),
+				new OkxExchange(),
+				new GateioExchange(),
+				new BitstampExchange(),
 			};
 
-			//Заполняем настройки из консоли
-			FillUpUserParameters();
+			FillUpConsoleParameters();
 
-			//Запускаем и ждем 1-е обновление (чтобы все биржи были заполнены)
 			StartUpdatingExchangesMarketData(exchanges);
 			await WaitForAllMarketDataLoaded(exchanges);
 
 			var coins = CoinsUtils.GetCoins();
-			var arbitrageChains = GetArbitrageChains(coins, exchanges).ToList();
-			await ArbitrageChainsFinder(arbitrageChains);
+			_arbitrageFinder = new ArbitrageFinder(coins, exchanges, _divergencePeriod);
+			_tradesManager = new ArbitrageTradesManager(_minimumSecondsInTrade);
+			_tradesManager.OnTradeOpened += ArbitrageTradesManager_OnTradeOpened;
+			_tradesManager.OnTradeClosed += ArbitrageTradesManager_OnTradeClosed;
+			
+			await StartFindingArbitrageChains();
 		}
 
-		private static void FillUpUserParameters()
+		private static void FillUpConsoleParameters()
 		{
-			Console.Write("Exchange commission: ");
-			exchangeCommission = decimal.Parse(Console.ReadLine().Replace(".", ","));
-
-			Console.Write("Minimum profit: ");
-			minimumProfit = decimal.Parse(Console.ReadLine().Replace(".", ","));
+			Console.Write("Minimum total divergence: ");
+			_minimumTotalDivergence = decimal.Parse(Console.ReadLine().Replace(".", ","));
 
 			Console.Write("SMA divergence period: ");
-			smaDivergencePeriod = int.Parse(Console.ReadLine());
+			_divergencePeriod = int.Parse(Console.ReadLine());
+
+			Console.Write("Minimum seconds in trade: ");
+			_minimumSecondsInTrade = int.Parse(Console.ReadLine());
 		}
 
 		private static async Task WaitForAllMarketDataLoaded(List<Exchange> exchanges)
@@ -74,53 +75,24 @@ namespace CryptoArbitrageMonitoringApp
 			Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: Starting exchanges market data updating...");
 			foreach (var exchange in exchanges)
 			{
-				_ = Task.Run(async () =>
-				{
-					while (true)
-					{
-						try
-						{
-							await exchange.UpdateCoinPrices();
-						}
-						catch (Exception ex)
-						{
-							await Task.Delay(5000);
-							continue;
-						}
-					}
-				});
+				exchange.StartUpdatingMarketData();
 			}
 		}
 
-		private static async Task ArbitrageChainsFinder(List<ArbitrageChainInfo> arbitrageChains)
+		private static async Task StartFindingArbitrageChains()
 		{
 			Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: Starting arbitrage chains finder...");
-
-			//Kucoin не может стоять на 2 месте, т.к. у них недоступна маржинальная торговля для необходимых нам монет
-			arbitrageChains = arbitrageChains
-				.Where(chain => chain.ToExchange.Name != "Kucoin")
-				.ToList();
-
+			
 			while (true)
 			{
 				try
 				{
-					var topChains = arbitrageChains
-						.Where(chain =>
-							chain.GetCurrentDifference() != 0 &&
-							chain.GetTotalDivergence() != 0 &&
-							chain.GetTotalDivergence() >= exchangeCommission + minimumProfit &&
-							chain.FromExchangeMarketData.GetLastTick().Ask < chain.ToExchangeMarketData.GetLastTick().Bid &&
-							!Trades.Any(trade => trade.ArbitrageChain.Equals(chain) && !trade.LongTrade.IsClosed && !trade.ShortTrade.IsClosed))
-						.OrderByDescending(c => c.GetTotalDivergence());
+					var topChains = _arbitrageFinder.GetUpdatedChains(_minimumTotalDivergence);
 
 					foreach (var topChain in topChains)
 					{
-						Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: {topChain}" + Environment.NewLine);
-						OpenPositionsByArbitrageChain(topChain);
+						var newTrade = _tradesManager.TryOpenPositionByArbitrageChain(topChain);
 					}
-					
-					ClosePositionsByArbitrageChains();
 				}
 				catch
 				{
@@ -129,64 +101,19 @@ namespace CryptoArbitrageMonitoringApp
 			}
 		}
 
-		private static void OpenPositionsByArbitrageChain(ArbitrageChainInfo chain)
+		private static void ArbitrageTradesManager_OnTradeOpened(ArbitrageTrade trade)
 		{
-			//Есть ли незакрытая сделка с такой цепочкой?
-			if (Trades.Any(trade => trade.ArbitrageChain.Equals(chain) && !trade.LongTrade.IsClosed && !trade.ShortTrade.IsClosed))
-				return;
+            Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: OPENED TRADE {trade} {Environment.NewLine}");
+        }
 
-			var longTrade = new Trade();
-			var shortTrade = new Trade();
-			var newArbitrageTrade = new ArbitrageTrade(chain, longTrade, shortTrade);
-
-			var longTradePrice = chain.FromExchangeMarketData.GetLastTick().Ask;
-			var shortTradePrice = chain.ToExchangeMarketData.GetLastTick().Bid;
-
-			longTrade.Open(longTradePrice, TradeType.Long);
-			shortTrade.Open(shortTradePrice, TradeType.Short);
-
-			Trades.Add(newArbitrageTrade);
-
-			Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: [{newArbitrageTrade.ArbitrageChain.Coin.Name}] " +
-				$"[OPEN LONG '{newArbitrageTrade.ArbitrageChain.FromExchange.Name}': {longTradePrice}$]; " +
-				$"[OPEN SHORT '{newArbitrageTrade.ArbitrageChain.ToExchange.Name}': {shortTradePrice}$]" +
-				$"{Environment.NewLine}");
-		}
-
-		private static void ClosePositionsByArbitrageChains()
+		private static void ArbitrageTradesManager_OnTradeClosed(ArbitrageTrade trade)
 		{
-			foreach (var trade in Trades.Where(trade => !trade.LongTrade.IsClosed && !trade.ShortTrade.IsClosed))
-			{
-				var longTradePrice = trade.ArbitrageChain.FromExchangeMarketData.GetLastTick().Bid;
-				var shortTradePrice = trade.ArbitrageChain.ToExchangeMarketData.GetLastTick().Ask;
-				var estimatedProfit = trade.GetEstimatedProfit(longTradePrice, shortTradePrice);
+			Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: CLOSED TRADE {trade} {Environment.NewLine}");
 
-				if (trade.ArbitrageChain.GetCurrentDivergence() < trade.ArbitrageChain.GetStandardDivergence())
-                {
-					trade.LongTrade.Close(longTradePrice);
-					trade.ShortTrade.Close(shortTradePrice);
-
-					SaveTradeInfo(trade);
-				}
-			}
-		}
-
-		private static void SaveTradeInfo(ArbitrageTrade trade)
-		{
-            var longTradeProfit = trade.LongTrade.Profit;
-            var shortTradeProfit = trade.ShortTrade.Profit;
-            var totalProfit = Math.Round(trade.ProfitPercent, 6).Normalize();
-            var timeInPosition = (trade.LongTrade.TimeInTrade + trade.ShortTrade.TimeInTrade) / 2;
-
-            Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: [{trade.ArbitrageChain.Coin.Name}] " +
-                        $"[CLOSE LONG '{trade.ArbitrageChain.FromExchange.Name}': {trade.LongTrade.ExitPrice}$, Profit = {longTradeProfit}$]; " +
-                        $"[CLOSE SHORT '{trade.ArbitrageChain.ToExchange.Name}': {trade.ShortTrade.ExitPrice}$, Profit = {shortTradeProfit}$]; " +
-                        $"[Total profit = {totalProfit}%, {timeInPosition}]" +
-                        $"{Environment.NewLine}");
-
-            File.AppendAllText($"Trades [{exchangeCommission} {minimumProfit} {smaDivergencePeriod}].txt",
+            File.AppendAllText($"Trades [{_minimumTotalDivergence} {_divergencePeriod}].txt",
                 $"{trade.LongTrade.EntryDateTime};" +
                 $"{trade.LongTrade.ExitDateTime};" +
+				$"{trade.TimeInTrade.Seconds};" +
                 $"{trade.ArbitrageChain.FromExchange.Name};" +
                 $"{trade.ArbitrageChain.ToExchange.Name};" +
                 $"{trade.ArbitrageChain.Coin.Name};" +
@@ -196,26 +123,6 @@ namespace CryptoArbitrageMonitoringApp
                 $"{trade.ShortTrade.ExitPrice};" +
                 $"{Environment.NewLine}");
         }
-
-		private static IEnumerable<ArbitrageChainInfo> GetArbitrageChains(List<CryptoCoin> coins, List<Exchange> exchanges)
-		{
-			return coins
-				.SelectMany(coin => GetExchangesCombinations(exchanges)
-					.Where(exchangePair => exchangePair.Item1.HasCoin(coin) && exchangePair.Item2.HasCoin(coin))
-					.Select(exchangePair => new ArbitrageChainInfo(coin, exchangePair.Item1, exchangePair.Item2, smaDivergencePeriod)));
-		}
-
-		private static IEnumerable<Tuple<Exchange, Exchange>> GetExchangesCombinations(List<Exchange> exchanges)
-		{
-			for (int i = 0; i < exchanges.Count; i++)
-			{
-				for (int j = 0; j < exchanges.Count; j++)
-				{
-					if (j != i)
-						yield return Tuple.Create(exchanges[i], exchanges[j]);
-				}
-			}
-		}
 	}
 }
 

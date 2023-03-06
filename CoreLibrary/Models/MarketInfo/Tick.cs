@@ -6,7 +6,7 @@
         public readonly decimal Ask;
         public readonly decimal Last;
         public readonly DateTime Time;
-        public decimal Spread => Bid != 0 && Ask != 0 ? Math.Round(Math.Abs(Bid / Ask * 100 - 100), 4) : 0;
+        public decimal Spread => Bid != 0 && Ask != 0 ? Math.Round(Math.Abs(Bid / Ask * 100 - 100), 2) : 0;
         
         public Tick(decimal bid, decimal ask, decimal last)
         {

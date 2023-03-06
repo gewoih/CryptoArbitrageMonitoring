@@ -6,12 +6,8 @@ namespace CoreLibrary.Models.Exchanges
 {
 	public sealed class BinanceExchange : Exchange
 	{
-		public BinanceExchange(HttpClient httpClient) : base(httpClient)
-		{
-		}
-
 		public override string Name => "Binance";
-		public override ExchangeTickersInfo TickersInfo => new ExchangeTickersInfo("", CaseType.Uppercase, new CryptoCoin("USDT"));
+		public override TickersInfo TickersInfo => new("", CaseType.Uppercase, new CryptoCoin("USDT"));
 		protected override string BaseApiEndpoint => "https://api.binance.com/api/v3/ticker/bookTicker";
 
 		public override async Task UpdateCoinPrices()

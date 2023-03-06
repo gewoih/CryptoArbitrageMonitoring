@@ -4,57 +4,33 @@ using CoreLibrary.Models.MarketInfo;
 
 namespace CoreLibrary.Models
 {
-	public sealed class ArbitrageChainInfo
+	public sealed class ArbitrageChain
 	{
 		public readonly CryptoCoin Coin;
 		public readonly Exchange FromExchange;
 		public readonly Exchange ToExchange;
-		public readonly int DivergencePeriod;
+		private readonly int _divergencePeriod;
 
-		public ArbitrageChainInfo(CryptoCoin coin, Exchange fromExchange, Exchange toExchange, int divergencePeriod)
+		public ArbitrageChain(CryptoCoin coin, Exchange fromExchange, Exchange toExchange, int divergencePeriod)
 		{
 			Coin = coin;
 			FromExchange = fromExchange;
 			ToExchange = toExchange;
-			DivergencePeriod = divergencePeriod;
+			_divergencePeriod = divergencePeriod;
 		}
 
 		public MarketData FromExchangeMarketData => FromExchange.GetCoinMarketData(Coin);
 		public MarketData ToExchangeMarketData => ToExchange.GetCoinMarketData(Coin);
 
-        public decimal GetTotalDivergence()
-		{
-			var standardDivergence = GetStandardDivergence();
-			var currentDivergence = GetCurrentDivergence();
-
-			if (standardDivergence == 0 ||
-				currentDivergence == 0 ||
-				currentDivergence < standardDivergence)
-				return 0;
-
-			return Math.Round(currentDivergence - standardDivergence, 6);
-		}
-
-		public decimal GetCurrentDifference()
-		{
-            var fromExchangeAsk = FromExchangeMarketData.GetLastTick().Ask;
-            var toExchangeBid = ToExchangeMarketData.GetLastTick().Bid;
-
-            if (fromExchangeAsk == 0 || toExchangeBid == 0)
-                return 0;
-
-			return Math.Round(fromExchangeAsk - toExchangeBid, 6);
-        }
-
 		public decimal GetStandardDivergence()
 		{
-            var fromExchangeSMA = FromExchangeMarketData.GetSMA(DivergencePeriod);
-            var toExchangeSMA = ToExchangeMarketData.GetSMA(DivergencePeriod);
+            var fromExchangeSMA = FromExchangeMarketData.GetSMA(_divergencePeriod);
+            var toExchangeSMA = ToExchangeMarketData.GetSMA(_divergencePeriod);
 
 			if (fromExchangeSMA == 0 || toExchangeSMA == 0)
 				return 0;
 
-			return Math.Round(Math.Abs(fromExchangeSMA / toExchangeSMA * 100 - 100), 6);
+			return Math.Abs(fromExchangeSMA / toExchangeSMA * 100 - 100);
         }
 
 		public decimal GetCurrentDivergence()
@@ -65,7 +41,29 @@ namespace CoreLibrary.Models
 			if (fromExchangeAsk == 0 || toExchangeBid == 0)
 				return 0;
 
-            return Math.Round(Math.Abs(fromExchangeAsk / toExchangeBid * 100 - 100), 6);
+            return Math.Abs(fromExchangeAsk / toExchangeBid * 100 - 100);
+        }
+        
+		public decimal GetTotalDivergence()
+		{
+			var standardDivergence = GetStandardDivergence();
+			var currentDivergence = GetCurrentDivergence();
+
+			if (standardDivergence == 0 || currentDivergence == 0)
+				return 0;
+
+			return currentDivergence - standardDivergence;
+		}
+
+		public decimal GetCurrentDifference()
+		{
+            var fromExchangeAsk = FromExchangeMarketData.GetLastTick().Ask;
+            var toExchangeBid = ToExchangeMarketData.GetLastTick().Bid;
+
+            if (fromExchangeAsk == 0 || toExchangeBid == 0)
+                return 0;
+
+			return fromExchangeAsk - toExchangeBid;
         }
 
 		public override string? ToString()
@@ -82,16 +80,22 @@ namespace CoreLibrary.Models
 			var secondExchangeLast = secondExchangeLastTick.Last.Normalize();
 			var secondExchangeSpread = secondExchangeLastTick.Spread.Normalize();
 
-			return $"[B:{firstExchangeBid}; A:{firstExchangeAsk}; L:{firstExchangeLast}; S:{firstExchangeSpread}%]; " +
+			var currentDifference = GetCurrentDifference().Normalize();
+			var standardDivergence = Math.Round(GetStandardDivergence().Normalize(), 2);
+			var currentDivergence = Math.Round(GetCurrentDivergence().Normalize(), 2);
+			var totalDivergence = Math.Round(GetTotalDivergence().Normalize(), 2);
+
+            return $"[B:{firstExchangeBid}; A:{firstExchangeAsk}; L:{firstExchangeLast}; S:{firstExchangeSpread}%]; " +
 						$"[B:{secondExchangeBid}; A:{secondExchangeAsk}; L:{secondExchangeLast}; S:{secondExchangeSpread}%]; " +
-						$"DIFF:[S:{GetCurrentDifference().Normalize()}; C:{GetCurrentDifference().Normalize()}]; " +
-						$"DIV:[S:{GetStandardDivergence().Normalize()}%; C:{GetCurrentDivergence().Normalize()}%; T:{GetTotalDivergence().Normalize()}%]; " +
-						$"[{Coin.Name}, {FromExchange.Name}:{ToExchange.Name}]";
+						$"[DIFF: {currentDifference}$; " +
+						$"S:{standardDivergence}%; " +
+						$"C:{currentDivergence}%; " +
+						$"T:{totalDivergence}%];";
 		}
 
-        public override bool Equals(object? obj)
+		public override bool Equals(object? obj)
         {
-            return obj is ArbitrageChainInfo info &&
+            return obj is ArbitrageChain info &&
                    EqualityComparer<CryptoCoin>.Default.Equals(Coin, info.Coin) &&
                    EqualityComparer<Exchange>.Default.Equals(FromExchange, info.FromExchange) &&
                    EqualityComparer<Exchange>.Default.Equals(ToExchange, info.ToExchange);

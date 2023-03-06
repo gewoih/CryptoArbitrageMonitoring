@@ -2,14 +2,14 @@
 
 namespace CoreLibrary.Models
 {
-    public sealed class ExchangeTickersInfo
+    public sealed class TickersInfo
     {
         public readonly string Separator;
         public readonly CaseType CaseType;
         public readonly CryptoCoin SecondCoin;
         public readonly string Prefix;
 
-        public ExchangeTickersInfo(string separator, CaseType caseType, CryptoCoin secondCoin, string prefix = "")
+        public TickersInfo(string separator, CaseType caseType, CryptoCoin secondCoin, string prefix = "")
         {
             Separator = separator;
             CaseType = caseType;

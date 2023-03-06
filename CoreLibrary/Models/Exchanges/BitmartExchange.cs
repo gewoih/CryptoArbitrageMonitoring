@@ -6,12 +6,8 @@ namespace CoreLibrary.Models.Exchanges
 {
     public sealed class BitmartExchange : Exchange
     {
-        public BitmartExchange(HttpClient httpClient) : base(httpClient)
-        {
-        }
-
         public override string Name => "Bitmart";
-        public override ExchangeTickersInfo TickersInfo => new("_", CaseType.Uppercase, new("USDT"));
+        public override TickersInfo TickersInfo => new("_", CaseType.Uppercase, new("USDT"));
         protected override string BaseApiEndpoint => "https://api-cloud.bitmart.com/spot/v1/ticker";
 
         public override async Task UpdateCoinPrices()

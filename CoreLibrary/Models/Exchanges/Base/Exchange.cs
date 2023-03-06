@@ -7,17 +7,42 @@ namespace CoreLibrary.Models.Exchanges.Base
     public abstract class Exchange
     {
         public abstract string Name { get; }
-        public abstract ExchangeTickersInfo TickersInfo { get; }
+        public abstract TickersInfo TickersInfo { get; }
         public bool IsAllMarketDataLoaded => !coinPrices.Values.Any(v => v.LastUpdate == DateTime.MinValue);
         protected bool IsCoinsWithoutMarginRemoved = false;
         protected abstract string BaseApiEndpoint { get; }
         protected readonly Dictionary<CryptoCoin, MarketData> coinPrices;
         protected readonly HttpClient httpClient;
+        private bool _isMarketDataLoading = false;
 
-        protected Exchange(HttpClient httpClient)
+        protected Exchange()
         {
-            this.httpClient = httpClient;
+            httpClient = new HttpClient();
             coinPrices = CoinsUtils.GetCoins().ToDictionary(key => key, value => new MarketData());
+        }
+
+        public void StartUpdatingMarketData()
+        {
+            if (!_isMarketDataLoading)
+            {
+                _ = Task.Run(async () =>
+                {
+                    while (true)
+                    {
+                        try
+                        {
+                            await UpdateCoinPrices();
+                        }
+                        catch (Exception ex)
+                        {
+                            await Task.Delay(5000);
+                            continue;
+                        }
+                    }
+                });
+
+                _isMarketDataLoading = true;
+            }
         }
 
         public MarketData GetCoinMarketData(CryptoCoin coin)
@@ -52,6 +77,11 @@ namespace CoreLibrary.Models.Exchanges.Base
         {
             return obj is Exchange exchange &&
                    Name == exchange.Name;
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Name);
         }
     }
 }

@@ -6,12 +6,8 @@ namespace CoreLibrary.Models.Exchanges
 {
     public sealed class OkxExchange : Exchange
     {
-        public OkxExchange(HttpClient httpClient) : base(httpClient)
-        {
-        }
-
         public override string Name => "Okx";
-        public override ExchangeTickersInfo TickersInfo => new("-", CaseType.Uppercase, new("USDT"));
+        public override TickersInfo TickersInfo => new("-", CaseType.Uppercase, new("USDT"));
         protected override string BaseApiEndpoint => "https://www.okx.com/api/v5/market/tickers?instType=SPOT";
 
         public override async Task UpdateCoinPrices()

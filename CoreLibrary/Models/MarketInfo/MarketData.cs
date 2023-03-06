@@ -22,9 +22,6 @@
             if (Ticks.Count < period)
                 return 0;
 
-            if (Ticks.Count > period)
-                Ticks.RemoveRange(0, Ticks.Count - period);
-
             return Ticks
                     .TakeLast(period)
                     .Average(tick => tick.Last);

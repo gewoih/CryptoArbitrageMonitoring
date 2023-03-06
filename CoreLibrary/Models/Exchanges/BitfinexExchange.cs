@@ -6,12 +6,8 @@ namespace CoreLibrary.Models.Exchanges
 {
     public sealed class BitfinexExchange : Exchange
     {
-        public BitfinexExchange(HttpClient httpClient) : base(httpClient)
-        {
-        }
-
         public override string Name => "Bitfinex";
-        public override ExchangeTickersInfo TickersInfo => new("", CaseType.Uppercase, new("USD"), "t");
+        public override TickersInfo TickersInfo => new("", CaseType.Uppercase, new("USD"), "t");
         protected override string BaseApiEndpoint => "https://api-pub.bitfinex.com/v2/tickers?symbols=ALL";
 
         public override async Task UpdateCoinPrices()

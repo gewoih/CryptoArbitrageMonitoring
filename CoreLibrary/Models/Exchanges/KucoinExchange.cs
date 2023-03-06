@@ -6,12 +6,8 @@ namespace CoreLibrary.Models.Exchanges
 {
     public sealed class KucoinExchange : Exchange
     {
-        public KucoinExchange(HttpClient httpClient) : base(httpClient)
-        {
-        }
-
         public override string Name => "Kucoin";
-        public override ExchangeTickersInfo TickersInfo => new("-", CaseType.Uppercase, new("USDT"));
+        public override TickersInfo TickersInfo => new("-", CaseType.Uppercase, new("USDT"));
         protected override string BaseApiEndpoint => "https://api.kucoin.com/api/v1/market/allTickers";
 
         public override async Task UpdateCoinPrices()

@@ -1,5 +1,4 @@
-﻿using CoreLibrary.Models;
-using CoreLibrary.Models.Enums;
+﻿using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
 using Newtonsoft.Json.Linq;
 
@@ -7,12 +6,8 @@ namespace CoreLibrary.Models.Exchanges
 {
     public sealed class BitstampExchange : Exchange
     {
-        public BitstampExchange(HttpClient httpClient) : base(httpClient)
-        {
-        }
-
         public override string Name => "Bitstamp";
-        public override ExchangeTickersInfo TickersInfo => new("/", CaseType.Uppercase, new("USD"));
+        public override TickersInfo TickersInfo => new("/", CaseType.Uppercase, new("USD"));
         protected override string BaseApiEndpoint => "https://www.bitstamp.net/api/v2/ticker/";
 
         public override async Task UpdateCoinPrices()
