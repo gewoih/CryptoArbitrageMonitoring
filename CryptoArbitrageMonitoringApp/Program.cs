@@ -19,7 +19,7 @@ namespace CryptoArbitrageMonitoringApp
 			var exchanges = new List<Exchange>
 			{
 				new BinanceExchange(),
-				//new BitfinexExchange(),
+				new BitfinexExchange(),
 				new BitmartExchange(),
 				new KucoinExchange(),
 				new HuobiExchange(),
@@ -30,7 +30,7 @@ namespace CryptoArbitrageMonitoringApp
 
 			FillUpConsoleParameters();
 
-			StartUpdatingExchangesMarketData(exchanges);
+            StartUpdatingExchangesMarketData(exchanges);
 			await WaitForAllMarketDataLoaded(exchanges);
 
 			var coins = CoinsUtils.GetCoins();
@@ -38,7 +38,7 @@ namespace CryptoArbitrageMonitoringApp
 			_tradesManager = new ArbitrageTradesManager(_minimumSecondsInTrade);
 			_tradesManager.OnTradeOpened += ArbitrageTradesManager_OnTradeOpened;
 			_tradesManager.OnTradeClosed += ArbitrageTradesManager_OnTradeClosed;
-			
+
 			await StartFindingArbitrageChains();
 		}
 

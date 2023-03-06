@@ -18,7 +18,7 @@
             }
 
         }
-        public TimeSpan TimeInTrade => ExitDateTime - EntryDateTime;
+        public TimeSpan TimeInTrade => ExitDateTime == DateTime.MinValue ? DateTime.UtcNow - EntryDateTime : ExitDateTime - EntryDateTime;
         public bool IsClosed => ExitDateTime != DateTime.MinValue;
 
         public void Open(decimal entryPrice, TradeType type)
