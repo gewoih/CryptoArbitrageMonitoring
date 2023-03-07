@@ -8,7 +8,7 @@ namespace CoreLibrary.Models.Exchanges
     {
         public override string Name => "Bitmart";
         public override TickersInfo TickersInfo => new("_", CaseType.Uppercase, new("USDT"));
-        protected override string BaseApiEndpoint => "https://api-cloud.bitmart.com/spot/v1/ticker";
+        protected override string BaseApiEndpoint => "https://api-cloud.bitmart.com/spot/v2/ticker";
 
         public override async Task UpdateCoinPrices()
         {

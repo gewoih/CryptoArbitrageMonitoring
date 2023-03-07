@@ -1,5 +1,4 @@
-﻿using CoreLibrary.Models;
-using CoreLibrary.Models.Enums;
+﻿using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
 using Newtonsoft.Json.Linq;
 
@@ -13,6 +12,12 @@ namespace CoreLibrary.Models.Exchanges
 
         public override async Task UpdateCoinPrices()
         {
+            if (!IsCoinsWithoutMarginRemoved)
+            {
+                await RemoveCoinsWithoutMarginTrading();
+                IsCoinsWithoutMarginRemoved = true;
+            }
+            
             using var result = await httpClient.GetAsync(BaseApiEndpoint);
             var pricesArray = JObject.Parse(await result.Content.ReadAsStringAsync());
 
@@ -34,9 +39,18 @@ namespace CoreLibrary.Models.Exchanges
             }
         }
 
-        protected override Task RemoveCoinsWithoutMarginTrading()
+        protected override async Task RemoveCoinsWithoutMarginTrading()
         {
-            throw new NotImplementedException();
+            using var result = await httpClient.GetAsync("https://api.huobi.pro/v2/settings/common/symbols");
+            var symbols = JObject.Parse(await result.Content.ReadAsStringAsync());
+
+            foreach (var coin in coinPrices.Keys.ToList())
+            {
+                var symbolData = symbols["data"].FirstOrDefault(s => s["sc"].ToString() == GetTickerByCoin(coin));
+
+                if (symbolData == null || symbolData["lr"].ToString() == "null")
+                    coinPrices.Remove(coin);
+            }
         }
     }
 }

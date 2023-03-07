@@ -12,6 +12,13 @@ namespace CoreLibrary.Models.Exchanges
 
         public override async Task UpdateCoinPrices()
         {
+            if (!IsCoinsWithoutMarginRemoved)
+            {
+                await RemoveCoinsWithoutMarginTrading();
+                IsCoinsWithoutMarginRemoved = true;
+            }
+
+
             using var result = await httpClient.GetAsync(BaseApiEndpoint);
             var prices = JArray.Parse(await result.Content.ReadAsStringAsync());
 
@@ -44,9 +51,16 @@ namespace CoreLibrary.Models.Exchanges
             }
         }
 
-        protected override Task RemoveCoinsWithoutMarginTrading()
+        protected override async Task RemoveCoinsWithoutMarginTrading()
         {
-            throw new NotImplementedException();
+            using var result = await httpClient.GetAsync("https://api.gateio.ws/api/v4/margin/currency_pairs");
+            var symbols = JArray.Parse(await result.Content.ReadAsStringAsync());
+
+            foreach (var coin in coinPrices.Keys.ToList())
+            {
+                if (symbols.FirstOrDefault(s => s["id"].ToString() == GetTickerByCoin(coin)) is null)
+                    coinPrices.Remove(coin);
+            }
         }
     }
 }

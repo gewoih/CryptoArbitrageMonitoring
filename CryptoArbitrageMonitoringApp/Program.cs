@@ -10,9 +10,9 @@ namespace CryptoArbitrageMonitoringApp
 	{
 		static async Task Main(string[] args)
 		{
-            var exchanges = new List<Exchange>
-            {
-                new BinanceExchange(),
+			var exchanges = new List<Exchange>
+			{
+				new BinanceExchange(),
 				new BitfinexExchange(),
 				new BitmartExchange(),
 				new KucoinExchange(),
@@ -21,7 +21,7 @@ namespace CryptoArbitrageMonitoringApp
 				new GateioExchange(),
 				new BitstampExchange(),
 			};
-            var coins = CoinsUtils.GetCoins();
+			var coins = CoinsUtils.GetCoins();
 
 			StartUpdatingExchangesMarketData(exchanges);
 			await WaitForAllMarketDataLoaded(exchanges);
@@ -33,28 +33,28 @@ namespace CryptoArbitrageMonitoringApp
 
 		private static void CreateStrategies(List<CryptoCoin> coins, List<Exchange> exchanges)
 		{
-            Console.Write("Number of strategies: ");
+			Console.Write("Number of strategies: ");
 			var strategiesNumber = int.Parse(Console.ReadLine());
 
 			for (int i = 0; i < strategiesNumber; i++)
 			{
-                Console.Write($"[Strategy {i + 1}] Minimum total divergence: ");
-                var minimumTotalDivergence = decimal.Parse(Console.ReadLine().Replace(".", ","));
+				Console.Write($"[Strategy {i + 1}] Minimum total divergence: ");
+				var minimumTotalDivergence = decimal.Parse(Console.ReadLine().Replace(".", ","));
 
-                Console.Write($"[Strategy {i + 1}] SMA divergence period: ");
-                var divergencePeriod = int.Parse(Console.ReadLine());
+				Console.Write($"[Strategy {i + 1}] SMA divergence period: ");
+				var divergencePeriod = int.Parse(Console.ReadLine());
 
-                Console.Write($"[Strategy {i + 1}] Minimum seconds in trade: ");
-                var minimumSecondsInTrade = int.Parse(Console.ReadLine());
+				Console.Write($"[Strategy {i + 1}] Minimum seconds in trade: ");
+				var minimumSecondsInTrade = int.Parse(Console.ReadLine());
 
 				Console.Write($"[Strategy {i + 1}] Take-profit (%): ");
 				var takeProfit = decimal.Parse(Console.ReadLine().Replace(".", ","));
 
-                var arbitrageStrategy = new ArbitrageStrategy(coins, exchanges, minimumTotalDivergence, divergencePeriod, minimumSecondsInTrade, takeProfit);
+				var arbitrageStrategy = new ArbitrageStrategy(coins, exchanges, minimumTotalDivergence, divergencePeriod, minimumSecondsInTrade, takeProfit);
 
 				arbitrageStrategy.Start();
-            }
-        }
+			}
+		}
 
 		private static async Task WaitForAllMarketDataLoaded(List<Exchange> exchanges)
 		{
