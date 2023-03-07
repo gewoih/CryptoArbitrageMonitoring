@@ -9,12 +9,14 @@ namespace CoreLibrary.Models.Services
         public event Action<ArbitrageTrade> OnTradeClosed;
         private readonly ConcurrentBag<ArbitrageTrade> _trades;
         private int _minimumSecondsInTrade;
+        private decimal _takeProfit;
 
-        public ArbitrageTradesManager(int minimumSecondsInTrade)
+        public ArbitrageTradesManager(int minimumSecondsInTrade, decimal takeProfit)
         {
             _trades = new();
             StartClosingPositions();
             _minimumSecondsInTrade = minimumSecondsInTrade;
+            _takeProfit = takeProfit;
         }
 
         public ArbitrageTrade TryOpenPositionByArbitrageChain(ArbitrageChain arbitrageChain)
@@ -51,7 +53,8 @@ namespace CoreLibrary.Models.Services
                         var shortTradePrice = trade.ArbitrageChain.ToExchangeMarketData.GetLastTick().Ask;
                         var estimatedProfit = trade.GetEstimatedProfit(longTradePrice, shortTradePrice);
 
-                        if (trade.ArbitrageChain.GetCurrentDivergence() <= trade.EntryStandardDivergence &&
+                        if ((trade.ArbitrageChain.GetCurrentDivergence() <= trade.EntryStandardDivergence ||
+                            estimatedProfit >= _takeProfit) &&
                             trade.TimeInTrade >= TimeSpan.FromSeconds(_minimumSecondsInTrade))
                         {
                             trade.LongTrade.Close(longTradePrice);

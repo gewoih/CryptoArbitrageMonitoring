@@ -2,9 +2,7 @@
 using CoreLibrary.Models.Exchanges;
 using CoreLibrary.Models.Exchanges.Base;
 using CoreLibrary.Models.Services;
-using CoreLibrary.Models.Trading;
 using CoreLibrary.Utils;
-using System.Drawing;
 
 namespace CryptoArbitrageMonitoringApp
 {
@@ -25,9 +23,9 @@ namespace CryptoArbitrageMonitoringApp
 			};
             var coins = CoinsUtils.GetCoins();
 
-            StartUpdatingExchangesMarketData(exchanges);
+			StartUpdatingExchangesMarketData(exchanges);
 			await WaitForAllMarketDataLoaded(exchanges);
-			
+
 			CreateStrategies(coins, exchanges);
 
 			Console.ReadLine();
@@ -40,16 +38,19 @@ namespace CryptoArbitrageMonitoringApp
 
 			for (int i = 0; i < strategiesNumber; i++)
 			{
-                Console.Write($"[Strategy {i+1}] Minimum total divergence: ");
+                Console.Write($"[Strategy {i + 1}] Minimum total divergence: ");
                 var minimumTotalDivergence = decimal.Parse(Console.ReadLine().Replace(".", ","));
 
-                Console.Write($"[Strategy {i+1}] SMA divergence period: ");
+                Console.Write($"[Strategy {i + 1}] SMA divergence period: ");
                 var divergencePeriod = int.Parse(Console.ReadLine());
 
-                Console.Write($"[Strategy {i+1}] Minimum seconds in trade: ");
+                Console.Write($"[Strategy {i + 1}] Minimum seconds in trade: ");
                 var minimumSecondsInTrade = int.Parse(Console.ReadLine());
 
-                var arbitrageStrategy = new ArbitrageStrategy(coins, exchanges, minimumTotalDivergence, divergencePeriod, minimumSecondsInTrade);
+				Console.Write($"[Strategy {i + 1}] Take-profit (%): ");
+				var takeProfit = decimal.Parse(Console.ReadLine().Replace(".", ","));
+
+                var arbitrageStrategy = new ArbitrageStrategy(coins, exchanges, minimumTotalDivergence, divergencePeriod, minimumSecondsInTrade, takeProfit);
 
 				arbitrageStrategy.Start();
             }

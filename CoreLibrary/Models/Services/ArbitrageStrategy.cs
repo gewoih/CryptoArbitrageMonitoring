@@ -9,19 +9,20 @@ namespace CoreLibrary.Models.Services
         private readonly ArbitrageTradesManager _tradesManager;
         public readonly decimal MinimumTotalDivergence;
         public readonly int DivergencePeriod;
+        public readonly decimal TakeProfit;
         public bool IsStarted { get; private set; }
 
-        public ArbitrageStrategy(List<CryptoCoin> coins, List<Exchange> exchanges, decimal minimumTotalDivergence, int divergencePeriod, int minimumSecondsInTrade)
+        public ArbitrageStrategy(List<CryptoCoin> coins, List<Exchange> exchanges, decimal minimumTotalDivergence, int divergencePeriod, int minimumSecondsInTrade, decimal takeProfit)
         {
             MinimumTotalDivergence = minimumTotalDivergence;
             DivergencePeriod = divergencePeriod;
+            TakeProfit = takeProfit;
 
             _arbitrageFinder = new ArbitrageFinder(coins, exchanges, divergencePeriod);
-            _tradesManager = new ArbitrageTradesManager(minimumSecondsInTrade);
+            _tradesManager = new ArbitrageTradesManager(minimumSecondsInTrade, takeProfit);
             
             _tradesManager.OnTradeOpened += ArbitrageTradesManager_OnTradeOpened;
             _tradesManager.OnTradeClosed += ArbitrageTradesManager_OnTradeClosed;
-
         }
 
         public void Start()
@@ -73,6 +74,13 @@ namespace CoreLibrary.Models.Services
                 $"{trade.ShortTrade.EntryPrice};" +
                 $"{trade.LongTrade.ExitPrice};" +
                 $"{trade.ShortTrade.ExitPrice};" +
+                $"{trade.LongTrade.Profit};" +
+                $"{trade.ShortTrade.Profit};" +
+                $"{trade.LongTrade.Profit + trade.ShortTrade.Profit};" +
+                $"{trade.Comission};" +
+                $"{(trade.LongTrade.Profit + trade.ShortTrade.Profit - trade.Comission) / 
+                    (trade.LongTrade.EntryPrice + trade.ShortTrade.EntryPrice) 
+                    * 100}" +
                 $"{Environment.NewLine}");
         }
     }

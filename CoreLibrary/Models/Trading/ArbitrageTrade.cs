@@ -11,6 +11,7 @@ namespace CoreLibrary.Models.Trading
         public decimal ProfitPercent => GetEstimatedProfit(LongTrade.ExitPrice, ShortTrade.ExitPrice);
         public TimeSpan TimeInTrade => (LongTrade.TimeInTrade + ShortTrade.TimeInTrade) / 2;
         public bool IsClosed => LongTrade.IsClosed && ShortTrade.IsClosed;
+        public decimal Comission => (LongTrade.EntryPrice + LongTrade.ExitPrice + ShortTrade.EntryPrice + ShortTrade.ExitPrice) / 4 * 0.008m;
         
         public ArbitrageTrade(ArbitrageChain arbitrageChain, Trade longTrade, Trade shortTrade)
         {
