@@ -1,56 +1,55 @@
-﻿using CoreLibrary.Models.Enums;
+﻿using CoreLibrary.Extensions;
+using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
-using Newtonsoft.Json.Linq;
+using CryptoExchange.Net.CommonObjects;
+using CryptoExchange.Net.Sockets;
+using Kucoin.Net.Clients;
+using Kucoin.Net.Objects.Models.Spot.Socket;
 
 namespace CoreLibrary.Models.Exchanges
 {
-    public sealed class KucoinExchange : Exchange
-    {
-        public override string Name => "Kucoin";
-        public override TickersInfo TickersInfo => new("-", CaseType.Uppercase, new("USDT"));
-        protected override string BaseApiEndpoint => "https://api.kucoin.com/api/v1/market/allTickers";
+	public sealed class KucoinExchange : Exchange
+	{
+		public override string Name => "Kucoin";
+		public override TickersInfo TickersInfo => new("-", CaseType.Uppercase, new("USDT"));
+		private readonly KucoinSocketClient _socketClient = new();
+		private readonly KucoinClient _client = new();
 
-        public override async Task UpdateCoinPrices()
-        {
-            if (!IsCoinsWithoutMarginRemoved)
-            {
-                await RemoveCoinsWithoutMarginTrading();
-                IsCoinsWithoutMarginRemoved = true;
-            }
+		public override async Task UpdateCoinPrices()
+		{
+			if (!IsCoinsWithoutMarginRemoved)
+			{
+				await RemoveCoinsWithoutMarginTrading();
+				IsCoinsWithoutMarginRemoved = true;
+			}
 
-            using var result = await httpClient.GetAsync(BaseApiEndpoint);
-            var prices = JObject.Parse(await result.Content.ReadAsStringAsync());
+			foreach (var coin in coinPrices.Keys)
+			{
+				var ticker = GetTickerByCoin(coin);
+				await _socketClient.SpotStreams.SubscribeToTickerUpdatesAsync(ticker, (update) =>
+				{
+					coinPrices[coin].AddTick((decimal)update.Data.LastPrice, update.Data.Timestamp);
+				});
 
-            foreach (var coin in coinPrices.Keys.ToList())
-            {
-                var coinData = prices["data"]["ticker"].FirstOrDefault(p => p["symbol"].ToString() == GetTickerByCoin(coin));
+				await _socketClient.SpotStreams.SubscribeToAggregatedOrderBookUpdatesAsync(ticker, (update) =>
+				{
+					coinPrices[coin].UpdateOrderBook(
+						update.Data.Changes.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
+						update.Data.Changes.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)));
+				});
+			}
+		}
 
-                if (coinData == null)
-                {
-                    coinPrices.Remove(coin);
-                    continue;
-                }
+		protected override async Task RemoveCoinsWithoutMarginTrading()
+		{
+			var result = await _client.SpotApi.ExchangeData.GetSymbolsAsync();
+			foreach (var coin in coinPrices.Keys.ToList())
+			{
+				var symbol = result.Data.FirstOrDefault(d => d.Symbol == GetTickerByCoin(coin));
 
-                var bid = Convert.ToDecimal(coinData["buy"]);
-                var ask = Convert.ToDecimal(coinData["sell"]);
-                var last = Convert.ToDecimal(coinData["last"]);
-
-                coinPrices[coin].AddTick(bid, ask, last);
-            }
-        }
-
-        protected override async Task RemoveCoinsWithoutMarginTrading()
-        {
-            using var result = await httpClient.GetAsync("https://api.kucoin.com/api/v1/currencies");
-            var symbols = JObject.Parse(await result.Content.ReadAsStringAsync());
-
-            foreach (var coin in coinPrices.Keys.ToList())
-            {
-                var symbolInfo = symbols["data"].FirstOrDefault(s => s["currency"].ToString().ToUpper() == coin.Name);
-
-                if (symbolInfo == null || !bool.Parse(symbolInfo["isMarginEnabled"].ToString()))
-                    coinPrices.Remove(coin);
-            }
-        }
-    }
+				if (symbol is null || !symbol.IsMarginEnabled)
+					coinPrices.Remove(coin);
+			}
+		}
+	}
 }

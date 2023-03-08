@@ -1,4 +1,5 @@
 ﻿using CoreLibrary.Models.Exchanges.Base;
+using System.Diagnostics;
 
 namespace CoreLibrary.Models.Services
 {
@@ -6,7 +7,7 @@ namespace CoreLibrary.Models.Services
 	{
 		private readonly List<CryptoCoin> _coins;
 		private readonly List<Exchange> _exchanges;
-		private readonly IEnumerable<ArbitrageChain> _chains;
+		private readonly List<ArbitrageChain> _chains;
 		private readonly int _divergencePeriod;
 
 		public ArbitrageFinder(List<CryptoCoin> coins, List<Exchange> exchanges, int divergencePeriod)
@@ -20,24 +21,22 @@ namespace CoreLibrary.Models.Services
 
 		public IEnumerable<ArbitrageChain> GetUpdatedChains(decimal minimumTotalDivergence)
 		{
-			foreach (var chain in _chains)
-			{
-				var standardDivergence = chain.GetStandardDivergence();
-				var totalDivergence = chain.GetTotalDivergence();
-				var fromExchangeLastTick = chain.FromExchangeMarketData.GetLastTick();
-				var toExchangeLastTick = chain.ToExchangeMarketData.GetLastTick();
+			var filteredChains = new List<ArbitrageChain>();
+            Parallel.ForEach(_chains, chain =>
+            {
+                var totalDivergence = chain.GetTotalDivergence();
+                if (totalDivergence >= minimumTotalDivergence &&
+                    chain.FromExchangeMarketData.Ask < chain.ToExchangeMarketData.Bid &&
+                    (chain.FromExchangeMarketData.Spread + chain.ToExchangeMarketData.Spread) < totalDivergence)
+                {
+                    filteredChains.Add(chain);
+                }
+            });
 
-				if (standardDivergence != 0 &&
-					totalDivergence >= minimumTotalDivergence &&
-					fromExchangeLastTick.Ask < toExchangeLastTick.Bid &&
-					(fromExchangeLastTick.Spread + toExchangeLastTick.Spread) < totalDivergence)
-				{
-					yield return chain;
-				}
-			}
+			return filteredChains;
 		}
 
-		private IEnumerable<ArbitrageChain> GetArbitrageChains(List<CryptoCoin> coins, List<Exchange> exchanges)
+		private List<ArbitrageChain> GetArbitrageChains(List<CryptoCoin> coins, List<Exchange> exchanges)
 		{
 			return coins
 				.SelectMany(coin => GetExchangesCombinations(exchanges)
@@ -46,10 +45,11 @@ namespace CoreLibrary.Models.Services
 						exchangePair.Item2.HasCoin(coin) &&
                         //Kucoin не может стоять на 2 месте, т.к. у них недоступна маржинальная торговля для необходимых нам монет
                         exchangePair.Item2.Name != "Kucoin")
-					.Select(exchangePair => new ArbitrageChain(coin, exchangePair.Item1, exchangePair.Item2, _divergencePeriod)));
+					.Select(exchangePair => new ArbitrageChain(coin, exchangePair.Item1, exchangePair.Item2, _divergencePeriod)))
+					.ToList();
 		}
 
-		private IEnumerable<Tuple<Exchange, Exchange>> GetExchangesCombinations(List<Exchange> exchanges)
+		private static IEnumerable<Tuple<Exchange, Exchange>> GetExchangesCombinations(List<Exchange> exchanges)
 		{
 			for (int i = 0; i < exchanges.Count; i++)
 			{

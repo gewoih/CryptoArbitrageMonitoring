@@ -7,7 +7,21 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Models\Exchanges\BitmartExchange.cs" />
+    <Compile Remove="Models\Exchanges\BitstampExchange.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Binance.Net" Version="8.4.2" />
+    <PackageReference Include="Bitfinex.Net" Version="5.1.1" />
+    <PackageReference Include="Bybit.Net" Version="1.5.1" />
+    <PackageReference Include="Gate.IO" Version="1.1.5" />
+    <PackageReference Include="Huobi.Net" Version="4.2.3" />
+    <PackageReference Include="KrakenExchange.Net" Version="3.1.6" />
+    <PackageReference Include="Kucoin.Net" Version="4.3.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="OKEx.Net" Version="5.3.1" />
+    <PackageReference Include="Websocket.Client" Version="4.6.1" />
   </ItemGroup>
 
 </Project>

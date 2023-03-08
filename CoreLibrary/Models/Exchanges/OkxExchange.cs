@@ -1,6 +1,7 @@
 ﻿using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
-using Newtonsoft.Json.Linq;
+using Okex.Net;
+using Okex.Net.Enums;
 
 namespace CoreLibrary.Models.Exchanges
 {
@@ -8,47 +9,53 @@ namespace CoreLibrary.Models.Exchanges
     {
         public override string Name => "Okx";
         public override TickersInfo TickersInfo => new("-", CaseType.Uppercase, new("USDT"));
-        protected override string BaseApiEndpoint => "https://www.okx.com/api/v5/market/tickers?instType=SPOT";
+        private readonly OkexSocketClient _socketClient = new();
+        private readonly OkexClient _client = new();
 
         public override async Task UpdateCoinPrices()
         {
-            using var result = await httpClient.GetAsync(BaseApiEndpoint);
-            var prices = JObject.Parse(await result.Content.ReadAsStringAsync());
-
-            foreach (var coin in coinPrices.Keys.ToList())
-            {
-                var coinData = prices["data"].FirstOrDefault(p => p["instId"].ToString() == GetTickerByCoin(coin));
-
-                if (coinData == null)
-                {
-                    coinPrices.Remove(coin);
-                    continue;
-                }
-
-                var bid = Convert.ToDecimal(coinData["bidPx"]);
-                var ask = Convert.ToDecimal(coinData["askPx"]);
-                var last = Convert.ToDecimal(coinData["last"]);
-
-                coinPrices[coin].AddTick(bid, ask, last);
-            }
-
             if (!IsCoinsWithoutMarginRemoved)
             {
                 await RemoveCoinsWithoutMarginTrading();
                 IsCoinsWithoutMarginRemoved = true;
             }
+
+            foreach (var coin in coinPrices.Keys)
+            {
+                var ticker = GetTickerByCoin(coin);
+                await _socketClient.SubscribeToTradesAsync(ticker, (update) =>
+                {
+                    coinPrices[coin].AddTick(update.Price, update.Time);
+
+                    //if (coin.Name == "ADA")
+                    //    Console.WriteLine(coinPrices[coin].Last.Price);
+                });
+
+                await _socketClient.SubscribeToOrderBookAsync(ticker, OkexOrderBookType.OrderBook, (update) =>
+                {
+                    var isFullOrderBook = update.Action == "snapshot";
+
+                    coinPrices[coin].UpdateOrderBook(
+                        update.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
+                        update.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)),
+                        isFullOrderBook);
+
+                    //if (coin.Name == "ADA")
+                    //{
+                    //    Console.WriteLine(coinPrices[coin].Ask);
+                    //    Console.WriteLine();
+                    //    Console.WriteLine(coinPrices[coin].Bid);
+                    //}
+                });
+            }
         }
 
         protected override async Task RemoveCoinsWithoutMarginTrading()
         {
-            using var result = await httpClient.GetAsync("https://www.okx.com/api/v5/public/instruments?instType=MARGIN");
-            var coinsData = JObject.Parse(await result.Content.ReadAsStringAsync());
-
+            var result = await _client.GetInstrumentsAsync(OkexInstrumentType.Margin);
             foreach (var coin in coinPrices.Keys.ToList())
             {
-                var coinData = coinsData["data"].FirstOrDefault(d => d["instId"].ToString() == GetTickerByCoin(coin));
-                
-                if (coinData == null)
+                if (result.Data.FirstOrDefault(d => d.Instrument == GetTickerByCoin(coin)) is null)
                     coinPrices.Remove(coin);
             }
         }

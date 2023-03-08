@@ -8,24 +8,26 @@ namespace CryptoArbitrageMonitoringApp
 {
 	internal class Program
 	{
-		static async Task Main(string[] args)
+		static void Main(string[] args)
 		{
 			var exchanges = new List<Exchange>
 			{
-				new BinanceExchange(),
 				new BitfinexExchange(),
-				new BitmartExchange(),
+				new BinanceExchange(),
 				new KucoinExchange(),
+				new KrakenExchange(),
 				new HuobiExchange(),
+				new BybitExchange(),
 				new OkxExchange(),
 				new GateioExchange(),
-				new BitstampExchange(),
+
+				//new BitmartExchange(),
+				//new BitstampExchange(),
 			};
+
 			var coins = CoinsUtils.GetCoins();
 
 			StartUpdatingExchangesMarketData(exchanges);
-			await WaitForAllMarketDataLoaded(exchanges);
-
 			CreateStrategies(coins, exchanges);
 
 			Console.ReadLine();
@@ -53,24 +55,6 @@ namespace CryptoArbitrageMonitoringApp
 				var arbitrageStrategy = new ArbitrageStrategy(coins, exchanges, minimumTotalDivergence, divergencePeriod, minimumSecondsInTrade, takeProfit);
 
 				arbitrageStrategy.Start();
-			}
-		}
-
-		private static async Task WaitForAllMarketDataLoaded(List<Exchange> exchanges)
-		{
-			while (true)
-			{
-				var notReadyExchange = exchanges.FirstOrDefault(e => !e.IsAllMarketDataLoaded);
-
-				if (notReadyExchange != null)
-				{
-					Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: Waiting for market data loading...");
-					await Task.Delay(1000);
-					continue;
-				}
-
-				Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: Market data loaded successfully!");
-				return;
 			}
 		}
 

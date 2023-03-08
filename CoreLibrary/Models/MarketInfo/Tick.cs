@@ -2,21 +2,22 @@
 {
     public sealed class Tick
     {
-        public readonly decimal Bid;
-        public readonly decimal Ask;
-        public readonly decimal Last;
-        public readonly DateTime Time;
-        public decimal Spread => Bid != 0 && Ask != 0 ? Math.Round(Math.Abs(Bid / Ask * 100 - 100), 2) : 0;
+        public readonly int Number;
+        public readonly decimal Price;
+        public readonly long Ticks;
+        public DateTime DateTime => DateTime.FromBinary(Ticks);
         
-        public Tick(decimal bid, decimal ask, decimal last)
+        public Tick(int number, decimal price, long ticks)
         {
-            Bid = bid;
-            Ask = ask;
+            Number = number;
+            Price = price;
+            Ticks = ticks;
+        }
 
-            if (last == 0)
-                Last = (bid + ask) / 2;
-            else
-                Last = last;
+        public Tick(decimal price, long ticks)
+        {
+            Price = price;
+            Ticks = ticks;
         }
     }
 }

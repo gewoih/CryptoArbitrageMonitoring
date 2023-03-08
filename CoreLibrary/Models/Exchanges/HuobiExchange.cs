@@ -1,6 +1,6 @@
 ﻿using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
-using Newtonsoft.Json.Linq;
+using Huobi.Net.Clients;
 
 namespace CoreLibrary.Models.Exchanges
 {
@@ -8,7 +8,8 @@ namespace CoreLibrary.Models.Exchanges
     {
         public override string Name => "Huobi";
         public override TickersInfo TickersInfo => new("", CaseType.Lowercase, new("USDT"));
-        protected override string BaseApiEndpoint => "https://api.huobi.pro/market/tickers";
+        private readonly HuobiSocketClient _socketClient = new();
+        private readonly HuobiClient _client = new();
 
         public override async Task UpdateCoinPrices()
         {
@@ -17,38 +18,30 @@ namespace CoreLibrary.Models.Exchanges
                 await RemoveCoinsWithoutMarginTrading();
                 IsCoinsWithoutMarginRemoved = true;
             }
-            
-            using var result = await httpClient.GetAsync(BaseApiEndpoint);
-            var pricesArray = JObject.Parse(await result.Content.ReadAsStringAsync());
 
-            foreach (var coin in coinPrices.Keys.ToList())
+            foreach (var coin in coinPrices.Keys)
             {
-                var coinData = pricesArray["data"].FirstOrDefault(p => p["symbol"].ToString() == GetTickerByCoin(coin));
-
-                if (coinData == null)
+                var ticker = GetTickerByCoin(coin);
+                await _socketClient.SpotStreams.SubscribeToTickerUpdatesAsync(ticker, (update) =>
                 {
-                    coinPrices.Remove(coin);
-                    continue;
-                }
+                    coinPrices[coin].AddTick(update.Data.LastTradePrice, update.Timestamp, (int)update.Data.TradeCount);
+                });
 
-                var bid = Convert.ToDecimal(coinData["bid"]);
-                var ask = Convert.ToDecimal(coinData["ask"]);
-                var last = Convert.ToDecimal(coinData["close"]);
-
-                coinPrices[coin].AddTick(bid, ask, last);
+                await _socketClient.SpotStreams.SubscribeToOrderBookChangeUpdatesAsync(ticker, 400, (update) =>
+                {
+                    coinPrices[coin].UpdateOrderBook(
+                        update.Data.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
+                        update.Data.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)));
+                });
             }
         }
 
         protected override async Task RemoveCoinsWithoutMarginTrading()
         {
-            using var result = await httpClient.GetAsync("https://api.huobi.pro/v2/settings/common/symbols");
-            var symbols = JObject.Parse(await result.Content.ReadAsStringAsync());
-
+            var result = await _client.SpotApi.ExchangeData.GetTickersAsync();
             foreach (var coin in coinPrices.Keys.ToList())
             {
-                var symbolData = symbols["data"].FirstOrDefault(s => s["sc"].ToString() == GetTickerByCoin(coin));
-
-                if (symbolData == null || symbolData["lr"].ToString() == "null")
+                if (result.Data.Ticks.FirstOrDefault(t => t.Symbol == GetTickerByCoin(coin)) is null)
                     coinPrices.Remove(coin);
             }
         }

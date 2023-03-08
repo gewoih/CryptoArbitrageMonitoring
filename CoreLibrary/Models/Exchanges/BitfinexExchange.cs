@@ -1,6 +1,7 @@
-﻿using CoreLibrary.Models.Enums;
+﻿using Bitfinex.Net.Clients;
+using Bitfinex.Net.Enums;
+using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
-using Newtonsoft.Json.Linq;
 
 namespace CoreLibrary.Models.Exchanges
 {
@@ -8,34 +9,46 @@ namespace CoreLibrary.Models.Exchanges
     {
         public override string Name => "Bitfinex";
         public override TickersInfo TickersInfo => new("", CaseType.Uppercase, new("USD"), "t");
-        protected override string BaseApiEndpoint => "https://api-pub.bitfinex.com/v2/tickers?symbols=ALL";
+        private readonly BitfinexClient _client = new();
+        private readonly BitfinexSocketClient _socketClient = new();
 
         public override async Task UpdateCoinPrices()
         {
-            using var result = await httpClient.GetAsync(BaseApiEndpoint);
-            var pricesArray = JArray.Parse(await result.Content.ReadAsStringAsync());
-
-            foreach (var coin in coinPrices.Keys.ToList())
+            if (!IsCoinsWithoutMarginRemoved)
             {
-                var coinData = pricesArray.FirstOrDefault(p => p[0].ToString() == GetTickerByCoin(coin));
+                await RemoveCoinsWithoutMarginTrading();
+                IsCoinsWithoutMarginRemoved = true;
+            }
 
-                if (coinData == null)
+            foreach (var coin in coinPrices.Keys)
+            {
+                var ticker = GetTickerByCoin(coin);
+                await _socketClient.SpotStreams.SubscribeToTradeUpdatesAsync(ticker, (update) =>
                 {
-                    coinPrices.Remove(coin);
-                    continue;
-                }
+                    foreach (var trade in update.Data)
+                    {
+                        if (trade.UpdateType == BitfinexEventType.TradeExecuted)
+                            coinPrices[coin].AddTick(trade.Price, trade.Timestamp);
+                    }
+                });
 
-                var bid = Convert.ToDecimal(coinData[1]);
-                var ask = Convert.ToDecimal(coinData[3]);
-                var last = Convert.ToDecimal(coinData[7]);
-
-                coinPrices[coin].AddTick(bid, ask, last);
+                await _socketClient.SpotStreams.SubscribeToOrderBookUpdatesAsync(ticker, Precision.PrecisionLevel0, Frequency.Realtime, 100, (update) =>
+                {
+                    coinPrices[coin].UpdateOrderBook(
+                        update.Data.Where(d => d.Quantity >= 0).Select(b => KeyValuePair.Create(b.Price, b.Count != 0 ? Math.Abs(b.Quantity) : 0)),
+                        update.Data.Where(d => d.Quantity < 0).Select(a => KeyValuePair.Create(a.Price, a.Count != 0 ? Math.Abs(a.Quantity) : 0)));
+                });
             }
         }
 
-        protected override Task RemoveCoinsWithoutMarginTrading()
+        protected override async Task RemoveCoinsWithoutMarginTrading()
         {
-            throw new NotImplementedException();
+            var result = await _client.SpotApi.ExchangeData.GetTickersAsync();
+            foreach (var coin in coinPrices.Keys.ToList())
+            {
+                if (result.Data.FirstOrDefault(d => d.Symbol == GetTickerByCoin(coin)) is null)
+                    coinPrices.Remove(coin);
+            }
         }
     }
 }

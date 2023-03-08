@@ -25,8 +25,8 @@ namespace CoreLibrary.Models.Services
             if (_trades.Any(trade => trade.ArbitrageChain.Equals(arbitrageChain) && !trade.LongTrade.IsClosed && !trade.ShortTrade.IsClosed))
                 return null;
 
-            var longTradePrice = arbitrageChain.FromExchangeMarketData.GetLastTick().Ask;
-            var shortTradePrice = arbitrageChain.ToExchangeMarketData.GetLastTick().Bid;
+            var longTradePrice = arbitrageChain.FromExchangeMarketData.Ask;
+            var shortTradePrice = arbitrageChain.ToExchangeMarketData.Bid;
             
             var longTrade = new Trade();
             var shortTrade = new Trade();
@@ -49,8 +49,8 @@ namespace CoreLibrary.Models.Services
                 {
                     foreach (var trade in _trades.Where(trade => !trade.LongTrade.IsClosed && !trade.ShortTrade.IsClosed))
                     {
-                        var longTradePrice = trade.ArbitrageChain.FromExchangeMarketData.GetLastTick().Bid;
-                        var shortTradePrice = trade.ArbitrageChain.ToExchangeMarketData.GetLastTick().Ask;
+                        var longTradePrice = trade.ArbitrageChain.FromExchangeMarketData.Bid;
+                        var shortTradePrice = trade.ArbitrageChain.ToExchangeMarketData.Ask;
                         var estimatedProfit = trade.GetEstimatedProfit(longTradePrice, shortTradePrice);
 
                         if ((trade.ArbitrageChain.GetCurrentDivergence() <= trade.EntryStandardDivergence ||

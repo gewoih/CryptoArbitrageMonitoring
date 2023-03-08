@@ -35,8 +35,8 @@ namespace CoreLibrary.Models
 
 		public decimal GetCurrentDivergence()
 		{
-            var fromExchangeAsk = FromExchangeMarketData.GetLastTick().Ask;
-            var toExchangeBid = ToExchangeMarketData.GetLastTick().Bid;
+            var fromExchangeAsk = FromExchangeMarketData.Ask;
+            var toExchangeBid = ToExchangeMarketData.Bid;
 
 			if (fromExchangeAsk == 0 || toExchangeBid == 0)
 				return 0;
@@ -57,8 +57,8 @@ namespace CoreLibrary.Models
 
 		public decimal GetCurrentDifference()
 		{
-            var fromExchangeAsk = FromExchangeMarketData.GetLastTick().Ask;
-            var toExchangeBid = ToExchangeMarketData.GetLastTick().Bid;
+            var fromExchangeAsk = FromExchangeMarketData.Ask;
+            var toExchangeBid = ToExchangeMarketData.Bid;
 
             if (fromExchangeAsk == 0 || toExchangeBid == 0)
                 return 0;
@@ -68,29 +68,30 @@ namespace CoreLibrary.Models
 
 		public override string? ToString()
 		{
-			var firstExchangeLastTick = FromExchangeMarketData.GetLastTick();
+			var firstExchangeLastTick = FromExchangeMarketData;
 			var firstExchangeBid = firstExchangeLastTick.Bid.Normalize();
 			var firstExchangeAsk = firstExchangeLastTick.Ask.Normalize();
-			var firstExchangeLast = firstExchangeLastTick.Last.Normalize();
-			var firstExchangeSpread = firstExchangeLastTick.Spread.Normalize();
+			var firstExchangeLast = firstExchangeLastTick.Last.Price.Normalize();
+			var firstExchangeSpread = Math.Round(firstExchangeLastTick.Spread.Normalize(), 2);
 
-			var secondExchangeLastTick = ToExchangeMarketData.GetLastTick();
+			var secondExchangeLastTick = ToExchangeMarketData;
 			var secondExchangeBid = secondExchangeLastTick.Bid.Normalize();
 			var secondExchangeAsk = secondExchangeLastTick.Ask.Normalize();
-			var secondExchangeLast = secondExchangeLastTick.Last.Normalize();
-			var secondExchangeSpread = secondExchangeLastTick.Spread.Normalize();
+			var secondExchangeLast = secondExchangeLastTick.Last.Price.Normalize();
+			var secondExchangeSpread = Math.Round(secondExchangeLastTick.Spread.Normalize(), 6);
 
 			var currentDifference = GetCurrentDifference().Normalize();
 			var standardDivergence = Math.Round(GetStandardDivergence().Normalize(), 2);
 			var currentDivergence = Math.Round(GetCurrentDivergence().Normalize(), 2);
 			var totalDivergence = Math.Round(GetTotalDivergence().Normalize(), 2);
 
-            return $"[B:{firstExchangeBid}; A:{firstExchangeAsk}; L:{firstExchangeLast}; S:{firstExchangeSpread}%]; " +
-						$"[B:{secondExchangeBid}; A:{secondExchangeAsk}; L:{secondExchangeLast}; S:{secondExchangeSpread}%]; " +
-						$"[DIFF: {currentDifference}$; " +
-						$"S:{standardDivergence}%; " +
-						$"C:{currentDivergence}%; " +
-						$"T:{totalDivergence}%];";
+            return $"[{Coin.Name}, {FromExchange.Name}-{ToExchange.Name}]" +
+					$"[B:{firstExchangeBid}; A:{firstExchangeAsk}; L:{firstExchangeLast}; S:{firstExchangeSpread}%]; " +
+					$"[B:{secondExchangeBid}; A:{secondExchangeAsk}; L:{secondExchangeLast}; S:{secondExchangeSpread}%]; " +
+					$"[DIFF: {currentDifference}$; " +
+					$"S:{standardDivergence}%; " +
+					$"C:{currentDivergence}%; " +
+					$"T:{totalDivergence}%];";
 		}
 
 		public override bool Equals(object? obj)

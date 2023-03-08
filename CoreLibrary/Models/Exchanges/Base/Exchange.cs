@@ -8,16 +8,13 @@ namespace CoreLibrary.Models.Exchanges.Base
     {
         public abstract string Name { get; }
         public abstract TickersInfo TickersInfo { get; }
-        public bool IsAllMarketDataLoaded => !coinPrices.Values.Any(v => v.LastUpdate == DateTime.MinValue);
+        public bool IsAllMarketDataLoaded => !coinPrices.Values.Any(v => v.LastTradeDateTime == DateTime.MinValue);
         protected bool IsCoinsWithoutMarginRemoved = false;
-        protected abstract string BaseApiEndpoint { get; }
         protected readonly Dictionary<CryptoCoin, MarketData> coinPrices;
-        protected readonly HttpClient httpClient;
         private bool _isMarketDataLoading = false;
 
         protected Exchange()
         {
-            httpClient = new HttpClient();
             coinPrices = CoinsUtils.GetCoins().ToDictionary(key => key, value => new MarketData());
         }
 
@@ -25,22 +22,7 @@ namespace CoreLibrary.Models.Exchanges.Base
         {
             if (!_isMarketDataLoading)
             {
-                _ = Task.Run(async () =>
-                {
-                    while (true)
-                    {
-                        try
-                        {
-                            await UpdateCoinPrices();
-                        }
-                        catch (Exception ex)
-                        {
-                            await Task.Delay(5000);
-                            continue;
-                        }
-                    }
-                });
-
+                _ = Task.Run(UpdateCoinPrices);
                 _isMarketDataLoading = true;
             }
         }
@@ -71,6 +53,11 @@ namespace CoreLibrary.Models.Exchanges.Base
             ticker = TickersInfo.Prefix + ticker;
 
             return ticker;
+        }
+
+        protected CryptoCoin GetCoinByTicker(string ticker)
+        {
+            return new(ticker.Replace($"{TickersInfo.Separator}{TickersInfo.SecondCoin.Name}", ""));
         }
 
         public override bool Equals(object? obj)

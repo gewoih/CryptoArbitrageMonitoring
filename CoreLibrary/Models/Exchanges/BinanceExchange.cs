@@ -1,6 +1,6 @@
-﻿using CoreLibrary.Models.Enums;
+﻿using Binance.Net.Clients;
+using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
-using Newtonsoft.Json.Linq;
 
 namespace CoreLibrary.Models.Exchanges
 {
@@ -8,54 +8,42 @@ namespace CoreLibrary.Models.Exchanges
 	{
 		public override string Name => "Binance";
 		public override TickersInfo TickersInfo => new("", CaseType.Uppercase, new CryptoCoin("USDT"));
-		protected override string BaseApiEndpoint => "https://api.binance.com/api/v3/ticker/bookTicker";
+        private readonly BinanceSocketClient _socketClient = new();
+        private readonly BinanceClient _client = new();
 
 		public override async Task UpdateCoinPrices()
 		{
             if (!IsCoinsWithoutMarginRemoved)
             {
-            	await RemoveCoinsWithoutMarginTrading();
-            	IsCoinsWithoutMarginRemoved = true;
+                await RemoveCoinsWithoutMarginTrading();
+                IsCoinsWithoutMarginRemoved = true;
             }
 
-            using var result = await httpClient.GetAsync(BaseApiEndpoint);
-            using var result2 = await httpClient.GetAsync("https://api.binance.com/api/v3/ticker/price");
+            var tickers = coinPrices.Keys.Select(GetTickerByCoin);
 
-            var bidAskArray = JArray.Parse(await result.Content.ReadAsStringAsync());
-            var lastPricesArray = JArray.Parse(await result2.Content.ReadAsStringAsync());
-
-            foreach (var coin in coinPrices.Keys.ToList())
+            await _socketClient.SpotStreams.SubscribeToTradeUpdatesAsync(tickers, (update) =>
             {
-            	var coinData = bidAskArray.FirstOrDefault(p => p["symbol"].ToString() == GetTickerByCoin(coin));
-            	var priceData = lastPricesArray.FirstOrDefault(p => p["symbol"].ToString() == GetTickerByCoin(coin));
+                var coin = GetCoinByTicker(update.Data.Symbol);
+                coinPrices[coin].AddTick(update.Data.Price, update.Data.TradeTime);
+            });
 
-            	if (coinData == null || priceData == null)
-            	{
-            		coinPrices.Remove(coin);
-            		continue;
-            	}
-
-            	var bid = Convert.ToDecimal(coinData["bidPrice"]);
-            	var ask = Convert.ToDecimal(coinData["askPrice"]);
-            	var last = Convert.ToDecimal(priceData["price"]);
-
-            	coinPrices[coin].AddTick(bid, ask, last);
-            }
+            await _socketClient.SpotStreams.SubscribeToOrderBookUpdatesAsync(tickers, 100, (update) =>
+            {
+                var coin = GetCoinByTicker(update.Data.Symbol);
+                coinPrices[coin].UpdateOrderBook(
+                        update.Data.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
+                        update.Data.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)));
+            });
         }
 
 		protected override async Task RemoveCoinsWithoutMarginTrading()
 		{
-			using var result = await httpClient.GetAsync("https://api.binance.com/api/v3/exchangeInfo");
-			var coinsData = JObject.Parse(await result.Content.ReadAsStringAsync());
-
+            var result = await _client.SpotApi.ExchangeData.GetExchangeInfoAsync();
 			foreach (var coin in coinPrices.Keys.ToList())
 			{
-				var coinData = coinsData["symbols"].FirstOrDefault(d => d["symbol"].ToString() == GetTickerByCoin(coin));
-				if (coinData == null || !bool.Parse(coinData["isMarginTradingAllowed"].ToString()))
-				{
+                var symbol = result.Data.Symbols.FirstOrDefault(s => s.Name == GetTickerByCoin(coin));
+                if (symbol == null || !symbol.IsMarginTradingAllowed)
 					coinPrices.Remove(coin);
-					continue;
-				}
 			}
 		}
 	}
