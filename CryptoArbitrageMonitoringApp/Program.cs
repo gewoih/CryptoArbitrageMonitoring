@@ -37,8 +37,8 @@ namespace CryptoArbitrageMonitoringApp
 
 			for (int i = 0; i < strategiesNumber; i++)
 			{
-				Console.Write($"[Strategy {i + 1}] Minimum total divergence: ");
-				var minimumTotalDivergence = decimal.Parse(Console.ReadLine().Replace(".", ","));
+				Console.Write($"[Strategy {i + 1}] Minimum total divergence (%): ");
+				var minimumTotalDivergence = decimal.Parse(Console.ReadLine());
 
 				Console.Write($"[Strategy {i + 1}] SMA divergence period: ");
 				var divergencePeriod = int.Parse(Console.ReadLine());
@@ -47,9 +47,16 @@ namespace CryptoArbitrageMonitoringApp
 				var minimumSecondsInTrade = int.Parse(Console.ReadLine());
 
 				Console.Write($"[Strategy {i + 1}] Take-profit (%): ");
-				var takeProfit = decimal.Parse(Console.ReadLine().Replace(".", ","));
+				var takeProfit = decimal.Parse(Console.ReadLine());
 
-				var arbitrageStrategy = new ArbitrageStrategy(coins, exchanges, minimumTotalDivergence, divergencePeriod, minimumSecondsInTrade, takeProfit);
+				Console.Write($"[Strategy {i + 1}] Stop-loss (%): ");
+				var stopLoss = decimal.Parse(Console.ReadLine());
+
+				Console.Write($"[Strategy {i + 1}] Amount per trade ($): ");
+				var amountPerTrade = decimal.Parse(Console.ReadLine());
+
+				var arbitrageStrategy = new ArbitrageStrategy(coins, exchanges, minimumTotalDivergence, 
+					divergencePeriod, minimumSecondsInTrade, takeProfit, stopLoss, amountPerTrade);
 
 				arbitrageStrategy.Start();
 			}

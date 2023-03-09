@@ -1,4 +1,6 @@
-﻿namespace CoreLibrary.Models.Trading
+﻿using CoreLibrary.Models.Enums;
+
+namespace CoreLibrary.Models.Trading
 {
     public sealed class Trade
     {
@@ -6,7 +8,7 @@
         public decimal ExitPrice { get; private set; }
         public DateTime EntryDateTime { get; private set; }
         public DateTime ExitDateTime { get; private set; }
-        public TradeType Type { get; private set; }
+        public TradeAction Type { get; private set; }
         public decimal Profit
         {
             get
@@ -16,12 +18,11 @@
 
                 return 0;
             }
-
         }
         public TimeSpan TimeInTrade => ExitDateTime == DateTime.MinValue ? DateTime.UtcNow - EntryDateTime : ExitDateTime - EntryDateTime;
         public bool IsClosed => ExitDateTime != DateTime.MinValue;
 
-        public void Open(decimal entryPrice, TradeType type)
+        public void Open(decimal entryPrice, TradeAction type)
         {
             EntryPrice = entryPrice;
             Type = type;
@@ -36,9 +37,9 @@
 
         public decimal GetEstimatedProfitForExitPrice(decimal exitPrice)
         {
-            if (Type == TradeType.Long)
+            if (Type == TradeAction.Long)
                 return exitPrice - EntryPrice;
-            else if (Type == TradeType.Short)
+            else if (Type == TradeAction.Short)
                 return EntryPrice - exitPrice;
 
             return 0;

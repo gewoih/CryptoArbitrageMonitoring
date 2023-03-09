@@ -1,4 +1,5 @@
-﻿using CoreLibrary.Models.Trading;
+﻿using CoreLibrary.Models.Enums;
+using CoreLibrary.Models.Trading;
 using System.Collections.Concurrent;
 
 namespace CoreLibrary.Models.Services
@@ -8,15 +9,19 @@ namespace CoreLibrary.Models.Services
         public event Action<ArbitrageTrade> OnTradeOpened;
         public event Action<ArbitrageTrade> OnTradeClosed;
         private readonly ConcurrentBag<ArbitrageTrade> _trades;
-        private int _minimumSecondsInTrade;
-        private decimal _takeProfit;
+        private readonly int _minimumSecondsInTrade;
+        private readonly decimal _stopLoss;
+        private readonly decimal _takeProfit;
+        private readonly decimal _amountPerTrade;
 
-        public ArbitrageTradesManager(int minimumSecondsInTrade, decimal takeProfit)
+        public ArbitrageTradesManager(int minimumSecondsInTrade, decimal takeProfit, decimal amountPerTrade, decimal stopLoss)
         {
             _trades = new();
             StartClosingPositions();
             _minimumSecondsInTrade = minimumSecondsInTrade;
+            _stopLoss = stopLoss;
             _takeProfit = takeProfit;
+            _amountPerTrade = amountPerTrade;
         }
 
         public ArbitrageTrade TryOpenPositionByArbitrageChain(ArbitrageChain arbitrageChain)
@@ -25,13 +30,13 @@ namespace CoreLibrary.Models.Services
             if (_trades.Any(trade => trade.ArbitrageChain.Equals(arbitrageChain) && !trade.LongTrade.IsClosed && !trade.ShortTrade.IsClosed))
                 return null;
 
-            var longTradePrice = arbitrageChain.FromExchangeMarketData.Ask;
-            var shortTradePrice = arbitrageChain.ToExchangeMarketData.Bid;
+            var longTradePrice = arbitrageChain.FromExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Long);
+            var shortTradePrice = arbitrageChain.ToExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Short);
             
             var longTrade = new Trade();
             var shortTrade = new Trade();
-            longTrade.Open(longTradePrice, TradeType.Long);
-            shortTrade.Open(shortTradePrice, TradeType.Short);
+            longTrade.Open(longTradePrice, TradeAction.Long);
+            shortTrade.Open(shortTradePrice, TradeAction.Short);
 
             var newArbitrageTrade = new ArbitrageTrade(arbitrageChain, longTrade, shortTrade);
             _trades.Add(newArbitrageTrade);
@@ -49,12 +54,11 @@ namespace CoreLibrary.Models.Services
                 {
                     foreach (var trade in _trades.Where(trade => !trade.LongTrade.IsClosed && !trade.ShortTrade.IsClosed))
                     {
-                        var longTradePrice = trade.ArbitrageChain.FromExchangeMarketData.Bid;
-                        var shortTradePrice = trade.ArbitrageChain.ToExchangeMarketData.Ask;
+                        var longTradePrice = trade.ArbitrageChain.FromExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Short);
+                        var shortTradePrice = trade.ArbitrageChain.ToExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Long);
                         var estimatedProfit = trade.GetEstimatedProfit(longTradePrice, shortTradePrice);
 
-                        if ((trade.ArbitrageChain.GetCurrentDivergence() <= trade.EntryStandardDivergence ||
-                            estimatedProfit >= _takeProfit) &&
+                        if ((estimatedProfit <= -_stopLoss || estimatedProfit >= _takeProfit) &&
                             trade.TimeInTrade >= TimeSpan.FromSeconds(_minimumSecondsInTrade))
                         {
                             trade.LongTrade.Close(longTradePrice);

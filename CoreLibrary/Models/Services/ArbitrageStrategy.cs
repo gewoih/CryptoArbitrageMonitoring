@@ -7,19 +7,23 @@ namespace CoreLibrary.Models.Services
     {
         private readonly ArbitrageFinder _arbitrageFinder;
         private readonly ArbitrageTradesManager _tradesManager;
-        public readonly decimal MinimumTotalDivergence;
-        public readonly int DivergencePeriod;
-        public readonly decimal TakeProfit;
-        public bool IsStarted { get; private set; }
+        private readonly decimal _minimumTotalDivergence;
+        private readonly int _divergencePeriod;
+        private readonly int _minimumSecondsInTrade;
+        private readonly decimal _takeProfit;
+        private readonly decimal _stopLoss;
 
-        public ArbitrageStrategy(List<CryptoCoin> coins, List<Exchange> exchanges, decimal minimumTotalDivergence, int divergencePeriod, int minimumSecondsInTrade, decimal takeProfit)
+        public ArbitrageStrategy(List<CryptoCoin> coins, List<Exchange> exchanges, decimal minimumTotalDivergence, int divergencePeriod, 
+            int minimumSecondsInTrade, decimal takeProfit, decimal stopLoss, decimal amountPerTrade)
         {
-            MinimumTotalDivergence = minimumTotalDivergence;
-            DivergencePeriod = divergencePeriod;
-            TakeProfit = takeProfit;
+            _minimumTotalDivergence = minimumTotalDivergence;
+            _divergencePeriod = divergencePeriod;
+            _minimumSecondsInTrade = minimumSecondsInTrade;
+            _takeProfit = takeProfit;
+            _stopLoss = stopLoss;
 
-            _arbitrageFinder = new ArbitrageFinder(coins, exchanges, divergencePeriod);
-            _tradesManager = new ArbitrageTradesManager(minimumSecondsInTrade, takeProfit);
+            _arbitrageFinder = new ArbitrageFinder(coins, exchanges, divergencePeriod, amountPerTrade);
+            _tradesManager = new ArbitrageTradesManager(minimumSecondsInTrade, takeProfit, amountPerTrade, stopLoss);
             
             _tradesManager.OnTradeOpened += ArbitrageTradesManager_OnTradeOpened;
             _tradesManager.OnTradeClosed += ArbitrageTradesManager_OnTradeClosed;
@@ -27,31 +31,27 @@ namespace CoreLibrary.Models.Services
 
         public void Start()
         {
-            if (!IsStarted)
+            Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: Starting arbitrage chains finder...");
+
+            _ = Task.Run(() =>
             {
-                Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: Starting arbitrage chains finder...");
-                IsStarted = true;
-
-                _ = Task.Run(() =>
+                while (true)
                 {
-                    while (true)
+                    try
                     {
-                        try
-                        {
-                            var topChains = _arbitrageFinder.GetUpdatedChains(MinimumTotalDivergence);
+                        var topChains = _arbitrageFinder.GetUpdatedChains(_minimumTotalDivergence);
 
-                            foreach (var topChain in topChains)
-                            {
-                                var newTrade = _tradesManager.TryOpenPositionByArbitrageChain(topChain);
-                            }
-                        }
-                        catch
+                        foreach (var topChain in topChains)
                         {
-                            continue;
+                            var newTrade = _tradesManager.TryOpenPositionByArbitrageChain(topChain);
                         }
                     }
-                });
-            }
+                    catch
+                    {
+                        continue;
+                    }
+                }
+            });
         }
 
         private void ArbitrageTradesManager_OnTradeOpened(ArbitrageTrade trade)
@@ -63,10 +63,19 @@ namespace CoreLibrary.Models.Services
         {
             Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: CLOSED TRADE {trade} {Environment.NewLine}");
 
-            File.AppendAllText($"Trades [{MinimumTotalDivergence} {DivergencePeriod}].txt",
+            var arbitrageTradeProfitWithComission = (trade.LongTrade.Profit + trade.ShortTrade.Profit - trade.Comission) / 
+                                                    (trade.LongTrade.EntryPrice + trade.ShortTrade.EntryPrice) 
+                                                    * 100;
+
+			File.AppendAllText($"Trades [" +
+                    $"{_minimumTotalDivergence.ToString().Replace(".", ",")} " +
+                    $"{_divergencePeriod} " +
+                    $"{_minimumSecondsInTrade} " +
+                    $"{_takeProfit.ToString().Replace(".", ",")} " +
+                    $"{_stopLoss.ToString().Replace(".", ",")}].txt",
                 $"{trade.LongTrade.EntryDateTime};" +
                 $"{trade.LongTrade.ExitDateTime};" +
-                $"{trade.TimeInTrade.TotalSeconds};" +
+                $"{(int)trade.TimeInTrade.TotalSeconds};" +
                 $"{trade.ArbitrageChain.FromExchange.Name};" +
                 $"{trade.ArbitrageChain.ToExchange.Name};" +
                 $"{trade.ArbitrageChain.Coin.Name};" +
@@ -78,9 +87,7 @@ namespace CoreLibrary.Models.Services
                 $"{trade.ShortTrade.Profit};" +
                 $"{trade.LongTrade.Profit + trade.ShortTrade.Profit};" +
                 $"{trade.Comission};" +
-                $"{(trade.LongTrade.Profit + trade.ShortTrade.Profit - trade.Comission) / 
-                    (trade.LongTrade.EntryPrice + trade.ShortTrade.EntryPrice) 
-                    * 100}" +
+                $"{arbitrageTradeProfitWithComission}" +
                 $"{Environment.NewLine}");
         }
     }

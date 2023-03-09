@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using CoreLibrary.Models.Enums;
+using System.Collections.Concurrent;
 
 namespace CoreLibrary.Models.MarketInfo
 {
@@ -81,6 +82,45 @@ namespace CoreLibrary.Models.MarketInfo
 					.OrderByDescending(t => t.Ticks)
 					.Take(period)
 					.Average(t => t.Price);
+		}
+
+		public decimal GetAverageMarketPriceForAmount(decimal amount, TradeAction tradeAction)
+		{
+			var totalPrice = 0m;
+			var totalAmount = 0m;
+			var remainingAmount = amount;
+
+			var orders = tradeAction == TradeAction.Long ?  _asks.ToArray().OrderBy(o => o.Key) : _bids.ToArray().OrderByDescending(o => o.Key);
+
+			foreach (var order in orders)
+			{
+				var price = order.Key;
+				var orderAmount = order.Value;
+
+				if (orderAmount * price < remainingAmount)
+				{
+					totalPrice += orderAmount * price;
+					totalAmount += orderAmount;
+					remainingAmount -= orderAmount * price;
+				}
+				else
+				{
+					totalPrice += remainingAmount;
+					totalAmount += remainingAmount / price;
+					remainingAmount = 0;
+					break;
+				}
+			}
+			
+			if (totalAmount == 0 || totalPrice < amount)
+				return 0;
+			
+			var averagePrice = totalPrice / totalAmount;
+
+			if (amount < averagePrice)
+				return 0;
+
+			return averagePrice;
 		}
 	}
 }
