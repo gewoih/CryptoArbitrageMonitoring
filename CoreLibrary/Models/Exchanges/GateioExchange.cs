@@ -54,11 +54,14 @@ namespace CoreLibrary.Models.Exchanges
 
         protected override async Task RemoveCoinsWithoutMarginTrading()
         {
-            var result = await _client.Spot.GetAllPairsAsync();
+            using var httpClient = new HttpClient();
+            using var result = await httpClient.GetAsync("https://api.gateio.ws/api/v4/spot/currency_pairs");
+
+            var tickers = JArray.Parse(await result.Content.ReadAsStringAsync());
             foreach (var coin in coinPrices.Keys.ToList())
             {
-                var pair = result.Data.FirstOrDefault(d => d.Symbol == GetTickerByCoin(coin));
-                if (pair is null || pair.Status == SpotMarketStatus.Untradable)
+                var pair = tickers.FirstOrDefault(d => d["id"].ToString() == GetTickerByCoin(coin));
+                if (pair is null || pair["trade_status"].ToString() == "untradable")
                     coinPrices.Remove(coin);
             }
         }

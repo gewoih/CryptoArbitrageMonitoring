@@ -20,9 +20,6 @@ namespace CryptoArbitrageMonitoringApp
 				new BybitExchange(),
 				new OkxExchange(),
 				new GateioExchange(),
-
-				//new BitmartExchange(),
-				//new BitstampExchange(),
 			};
 
 			var coins = CoinsUtils.GetCoins();

@@ -1,5 +1,4 @@
 ﻿using CoreLibrary.Models.Exchanges.Base;
-using System.Diagnostics;
 
 namespace CoreLibrary.Models.Services
 {
@@ -22,16 +21,16 @@ namespace CoreLibrary.Models.Services
 		public IEnumerable<ArbitrageChain> GetUpdatedChains(decimal minimumTotalDivergence)
 		{
 			var filteredChains = new List<ArbitrageChain>();
-            Parallel.ForEach(_chains, chain =>
-            {
-                var totalDivergence = chain.GetTotalDivergence();
-                if (totalDivergence >= minimumTotalDivergence &&
-                    chain.FromExchangeMarketData.Ask < chain.ToExchangeMarketData.Bid &&
-                    (chain.FromExchangeMarketData.Spread + chain.ToExchangeMarketData.Spread) < totalDivergence)
-                {
-                    filteredChains.Add(chain);
-                }
-            });
+			Parallel.ForEach(_chains, chain =>
+			{
+				var totalDivergence = chain.GetTotalDivergence();
+				if (totalDivergence >= minimumTotalDivergence &&
+					chain.FromExchangeMarketData.Ask < chain.ToExchangeMarketData.Bid &&
+					(chain.FromExchangeMarketData.Spread + chain.ToExchangeMarketData.Spread) < totalDivergence)
+				{
+					filteredChains.Add(chain);
+				}
+			});
 
 			return filteredChains;
 		}
@@ -40,11 +39,11 @@ namespace CoreLibrary.Models.Services
 		{
 			return coins
 				.SelectMany(coin => GetExchangesCombinations(exchanges)
-					.Where(exchangePair => 
-						exchangePair.Item1.HasCoin(coin) && 
+					.Where(exchangePair =>
+						exchangePair.Item1.HasCoin(coin) &&
 						exchangePair.Item2.HasCoin(coin) &&
-                        //Kucoin не может стоять на 2 месте, т.к. у них недоступна маржинальная торговля для необходимых нам монет
-                        exchangePair.Item2.Name != "Kucoin")
+						//Kucoin не может стоять на 2 месте, т.к. у них недоступна маржинальная торговля для необходимых нам монет
+						exchangePair.Item2.Name != "Kucoin")
 					.Select(exchangePair => new ArbitrageChain(coin, exchangePair.Item1, exchangePair.Item2, _divergencePeriod)))
 					.ToList();
 		}

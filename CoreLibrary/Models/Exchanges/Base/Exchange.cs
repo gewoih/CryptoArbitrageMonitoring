@@ -29,7 +29,10 @@ namespace CoreLibrary.Models.Exchanges.Base
 
         public MarketData GetCoinMarketData(CryptoCoin coin)
         {
-            return coinPrices[coin];
+            if (coinPrices.TryGetValue(coin, out MarketData value))
+                return value;
+            else
+                return new();
         }
 
         public bool HasCoin(CryptoCoin coin)

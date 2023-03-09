@@ -5,7 +5,7 @@ VisualStudioVersion = 17.4.33403.182
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CryptoArbitrageMonitoringApp", "CryptoArbitrageMonitoringApp\CryptoArbitrageMonitoringApp.csproj", "{96AC6E02-3A57-4615-AC15-011353797F50}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreLibrary", "CoreLibrary\CoreLibrary.csproj", "{9D72430F-37EE-4E36-B79F-BE229D1AF2B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CoreLibrary", "CoreLibrary\CoreLibrary.csproj", "{9D72430F-37EE-4E36-B79F-BE229D1AF2B8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

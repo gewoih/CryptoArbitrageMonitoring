@@ -24,8 +24,8 @@ namespace CoreLibrary.Models
 
 		public decimal GetStandardDivergence()
 		{
-            var fromExchangeSMA = FromExchangeMarketData.GetSMA(_divergencePeriod);
-            var toExchangeSMA = ToExchangeMarketData.GetSMA(_divergencePeriod);
+			var fromExchangeSMA = FromExchangeMarketData.GetSMA(_divergencePeriod);
+			var toExchangeSMA = ToExchangeMarketData.GetSMA(_divergencePeriod);
 
 			if (fromExchangeSMA == 0 || toExchangeSMA == 0)
 				return 0;
@@ -35,7 +35,7 @@ namespace CoreLibrary.Models
 
 		public decimal GetCurrentDivergence()
 		{
-            var fromExchangeAsk = FromExchangeMarketData.Ask;
+			var fromExchangeAsk = FromExchangeMarketData.Ask;
             var toExchangeBid = ToExchangeMarketData.Bid;
 
 			if (fromExchangeAsk == 0 || toExchangeBid == 0)
@@ -57,7 +57,7 @@ namespace CoreLibrary.Models
 
 		public decimal GetCurrentDifference()
 		{
-            var fromExchangeAsk = FromExchangeMarketData.Ask;
+			var fromExchangeAsk = FromExchangeMarketData.Ask;
             var toExchangeBid = ToExchangeMarketData.Bid;
 
             if (fromExchangeAsk == 0 || toExchangeBid == 0)

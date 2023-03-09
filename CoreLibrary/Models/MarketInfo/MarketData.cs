@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
 
 namespace CoreLibrary.Models.MarketInfo
 {
@@ -12,7 +11,7 @@ namespace CoreLibrary.Models.MarketInfo
 		public DateTime LastTradeDateTime => Ticks.Any() ? Ticks.MaxBy(t => t.Ticks).DateTime : DateTime.MinValue;
 		public decimal Ask => _asks.Any() ? _asks.Min(a => a.Key) : 0;
 		public decimal Bid => _bids.Any() ? _bids.Max(bid => bid.Key) : 0;
-		public decimal Spread => -(Bid / Ask * 100 - 100);
+		public decimal Spread => Ask != 0 && Bid != 0 ? Math.Abs(Bid / Ask * 100 - 100) : 0;
 		public MarketData()
 		{
 			Ticks = new();
