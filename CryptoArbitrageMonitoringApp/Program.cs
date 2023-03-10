@@ -12,13 +12,13 @@ namespace CryptoArbitrageMonitoringApp
 		{
 			var exchanges = new List<Exchange>
 			{
-				new BitfinexExchange(),
-				new BinanceExchange(),
-				new KucoinExchange(),
-				new KrakenExchange(),
+				//new BitfinexExchange(),
+				//new BinanceExchange(),
+				//new KucoinExchange(),
+				//new KrakenExchange(),
 				new HuobiExchange(),
-				new BybitExchange(),
-				new OkxExchange(),
+				//new BybitExchange(),
+				//new OkxExchange(),
 				new GateioExchange(),
 			};
 
@@ -46,6 +46,9 @@ namespace CryptoArbitrageMonitoringApp
 				Console.Write($"[Strategy {i + 1}] Minimum seconds in trade: ");
 				var minimumSecondsInTrade = int.Parse(Console.ReadLine());
 
+				Console.Write($"[Strategy {i + 1}] Minimum seconds of chain holding: ");
+				var minimumSecondsOfChainHolding = int.Parse(Console.ReadLine());
+
 				Console.Write($"[Strategy {i + 1}] Take-profit (%): ");
 				var takeProfit = decimal.Parse(Console.ReadLine());
 
@@ -56,7 +59,7 @@ namespace CryptoArbitrageMonitoringApp
 				var amountPerTrade = decimal.Parse(Console.ReadLine());
 
 				var arbitrageStrategy = new ArbitrageStrategy(coins, exchanges, minimumTotalDivergence, 
-					divergencePeriod, minimumSecondsInTrade, takeProfit, stopLoss, amountPerTrade);
+					divergencePeriod, minimumSecondsInTrade, takeProfit, stopLoss, amountPerTrade, minimumSecondsOfChainHolding);
 
 				arbitrageStrategy.Start();
 			}

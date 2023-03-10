@@ -10,9 +10,41 @@ namespace CoreLibrary.Models.MarketInfo
 		public readonly ConcurrentBag<Tick> Ticks;
 		public Tick Last => Ticks.Any() ? Ticks.MaxBy(t => t.Ticks) : new(0, 0);
 		public DateTime LastTradeDateTime => Ticks.Any() ? Ticks.MaxBy(t => t.Ticks).DateTime : DateTime.MinValue;
-		public decimal Ask => _asks.Any() ? _asks.Min(a => a.Key) : 0;
-		public decimal Bid => _bids.Any() ? _bids.Max(bid => bid.Key) : 0;
-		public decimal Spread => Ask != 0 && Bid != 0 ? Math.Abs(Bid / Ask * 100 - 100) : 0;
+		private readonly object _lock = new();
+
+		public decimal Ask
+		{
+			get
+			{
+				lock (_lock)
+				{
+					return _asks.Any() ? _asks.Min(a => a.Key) : 0;
+				}
+			}
+		}
+
+		public decimal Bid
+		{
+			get
+			{
+				lock (_lock)
+				{
+					return _bids.Any() ? _bids.Max(bid => bid.Key) : 0;
+				}
+			}
+		}
+
+		public decimal Spread
+		{
+			get
+			{
+				lock (_lock)
+				{
+					return Ask != 0 && Bid != 0 ? Math.Abs(Bid / Ask * 100 - 100) : 0;
+				}
+			}
+		}
+
 		public MarketData()
 		{
 			Ticks = new();
@@ -56,7 +88,7 @@ namespace CoreLibrary.Models.MarketInfo
             foreach (var bid in bids)
             {
 				if (bid.Value == 0)
-					_bids.TryRemove(bid.Key, out decimal value);
+					_bids.TryRemove(bid.Key, out _);
 				else
 					_bids[bid.Key] = bid.Value;
             }
@@ -64,7 +96,7 @@ namespace CoreLibrary.Models.MarketInfo
             foreach (var ask in asks)
             {
                 if (ask.Value == 0)
-                    _asks.TryRemove(ask.Key, out decimal value);
+                    _asks.TryRemove(ask.Key, out _);
                 else
                     _asks[ask.Key] = ask.Value;
             }

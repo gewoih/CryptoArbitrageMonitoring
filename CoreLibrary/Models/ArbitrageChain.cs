@@ -86,8 +86,10 @@ namespace CoreLibrary.Models
 			var totalDivergence = Math.Round(GetTotalDivergence().Normalize(), 2);
 
             return $"[{Coin.Name}, {FromExchange.Name}-{ToExchange.Name}]" +
-					$"[B:{firstExchangeBid}; A:{firstExchangeAsk}; L:{firstExchangeLast}; S:{firstExchangeSpread}%]; " +
-					$"[B:{secondExchangeBid}; A:{secondExchangeAsk}; L:{secondExchangeLast}; S:{secondExchangeSpread}%]; " +
+					$"[B:{firstExchangeBid}$/{secondExchangeBid}$; " +
+					$"A:{firstExchangeAsk}$/{secondExchangeAsk}$; " +
+					$"L:{firstExchangeLast}$/{secondExchangeLast}$; " +
+					$"S:{firstExchangeSpread}%/{secondExchangeSpread}%]; " +
 					$"[DIFF: {currentDifference}$; " +
 					$"S:{standardDivergence}%; " +
 					$"C:{currentDivergence}%; " +

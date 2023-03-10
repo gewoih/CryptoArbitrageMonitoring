@@ -32,11 +32,14 @@ namespace CoreLibrary.Models.Services
 
             var longTradePrice = arbitrageChain.FromExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Long);
             var shortTradePrice = arbitrageChain.ToExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Short);
-            
+
+            var longAmount = (int)(_amountPerTrade / longTradePrice);
+            var shortAmount = (int)(_amountPerTrade / shortTradePrice);
+
             var longTrade = new Trade();
             var shortTrade = new Trade();
-            longTrade.Open(longTradePrice, TradeAction.Long);
-            shortTrade.Open(shortTradePrice, TradeAction.Short);
+            longTrade.Open(longTradePrice, longAmount, TradeAction.Long);
+            shortTrade.Open(shortTradePrice, shortAmount, TradeAction.Short);
 
             var newArbitrageTrade = new ArbitrageTrade(arbitrageChain, longTrade, shortTrade);
             _trades.Add(newArbitrageTrade);

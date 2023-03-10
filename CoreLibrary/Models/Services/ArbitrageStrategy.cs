@@ -12,15 +12,17 @@ namespace CoreLibrary.Models.Services
         private readonly int _minimumSecondsInTrade;
         private readonly decimal _takeProfit;
         private readonly decimal _stopLoss;
+        private readonly int _minimumSecondsOfChainHolding;
 
         public ArbitrageStrategy(List<CryptoCoin> coins, List<Exchange> exchanges, decimal minimumTotalDivergence, int divergencePeriod, 
-            int minimumSecondsInTrade, decimal takeProfit, decimal stopLoss, decimal amountPerTrade)
+            int minimumSecondsInTrade, decimal takeProfit, decimal stopLoss, decimal amountPerTrade, int minimumSecondsOfChainHolding)
         {
             _minimumTotalDivergence = minimumTotalDivergence;
             _divergencePeriod = divergencePeriod;
             _minimumSecondsInTrade = minimumSecondsInTrade;
             _takeProfit = takeProfit;
             _stopLoss = stopLoss;
+            _minimumSecondsOfChainHolding = minimumSecondsOfChainHolding;
 
             _arbitrageFinder = new ArbitrageFinder(coins, exchanges, divergencePeriod, amountPerTrade);
             _tradesManager = new ArbitrageTradesManager(minimumSecondsInTrade, takeProfit, amountPerTrade, stopLoss);
@@ -33,25 +35,50 @@ namespace CoreLibrary.Models.Services
         {
             Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: Starting arbitrage chains finder...");
 
-            _ = Task.Run(() =>
+            _ = Task.Run(async () =>
             {
-                while (true)
-                {
-                    try
-                    {
-                        var topChains = _arbitrageFinder.GetUpdatedChains(_minimumTotalDivergence);
+				var arbitrageChainsDiscoveryTimes = new Dictionary<ArbitrageChain, DateTime>();
 
-                        foreach (var topChain in topChains)
-                        {
-                            var newTrade = _tradesManager.TryOpenPositionByArbitrageChain(topChain);
-                        }
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-                }
-            });
+				while (true)
+				{
+					try
+					{
+						var topChains = _arbitrageFinder.GetUpdatedChains(_minimumTotalDivergence);
+
+						var chainsToRemove = arbitrageChainsDiscoveryTimes.Keys.Except(topChains).ToList();
+						foreach (var chain in chainsToRemove)
+						{
+							arbitrageChainsDiscoveryTimes.Remove(chain);
+                            Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: CHAIN REMOVED FROM POSSIBLE CHAINS FOR TRADES! {chain} {Environment.NewLine}");
+						}
+
+						foreach (var topChain in topChains)
+						{
+                            if (!arbitrageChainsDiscoveryTimes.ContainsKey(topChain))
+                            {
+                                Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: NEW CHAIN WAS DISCOVERED: {topChain}");
+                                arbitrageChainsDiscoveryTimes[topChain] = DateTime.Now;
+                            }
+
+                            if (DateTime.Now - arbitrageChainsDiscoveryTimes[topChain] > TimeSpan.FromSeconds(_minimumSecondsOfChainHolding))
+                            {
+                                Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: CHAIN STAYED MORE THAN {_minimumSecondsOfChainHolding} SECONDS. TRYING OPEN THE TRADE.");
+                                _tradesManager.TryOpenPositionByArbitrageChain(topChain);
+								arbitrageChainsDiscoveryTimes.Remove(topChain);
+							}
+                            //else
+                            //    Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: WAITING FOR CHAIN STAY MORE THAN " +
+                            //        $"{_minimumSecondsOfChainHolding} SECONDS... {topChain} {Environment.NewLine}");
+						}
+
+                        await Task.Delay(1);
+					}
+					catch
+					{
+						continue;
+					}
+				}
+			});
         }
 
         private void ArbitrageTradesManager_OnTradeOpened(ArbitrageTrade trade)
@@ -71,6 +98,7 @@ namespace CoreLibrary.Models.Services
                     $"{_minimumTotalDivergence.ToString().Replace(".", ",")} " +
                     $"{_divergencePeriod} " +
                     $"{_minimumSecondsInTrade} " +
+                    $"{_minimumSecondsOfChainHolding} " +
                     $"{_takeProfit.ToString().Replace(".", ",")} " +
                     $"{_stopLoss.ToString().Replace(".", ",")}].txt",
                 $"{trade.LongTrade.EntryDateTime};" +
@@ -80,7 +108,9 @@ namespace CoreLibrary.Models.Services
                 $"{trade.ArbitrageChain.ToExchange.Name};" +
                 $"{trade.ArbitrageChain.Coin.Name};" +
                 $"{trade.LongTrade.EntryPrice};" +
+                $"{trade.LongTrade.Amount};" +
                 $"{trade.ShortTrade.EntryPrice};" +
+                $"{trade.ShortTrade.Amount};" +
                 $"{trade.LongTrade.ExitPrice};" +
                 $"{trade.ShortTrade.ExitPrice};" +
                 $"{trade.LongTrade.Profit};" +

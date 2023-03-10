@@ -48,7 +48,7 @@ namespace CoreLibrary.Models.Trading
             {
                 return
                     $"[{coinName}, {fromExchangeName}-{toExchangeName}]" +
-                    $"[LONG {LongTrade.EntryPrice.Normalize()}$, SHORT {ShortTrade.EntryPrice.Normalize()}$]; " +
+                    $"[LONG {LongTrade.Amount}*{LongTrade.EntryPrice.Normalize()}$, SHORT {ShortTrade.Amount}*{ShortTrade.EntryPrice.Normalize()}$]; " +
                     $"{Environment.NewLine}" +
                     $"FOR CHAIN: {ArbitrageChain}";
             }
