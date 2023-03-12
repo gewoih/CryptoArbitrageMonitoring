@@ -24,7 +24,7 @@ namespace CoreLibrary.Models.Services
             _amountPerTrade = amountPerTrade;
         }
 
-        public ArbitrageTrade TryOpenPositionByArbitrageChain(ArbitrageChain arbitrageChain)
+        public ArbitrageTrade TryOpenTradeByArbitrageChain(ArbitrageChain arbitrageChain)
         {
             //Есть ли незакрытая сделка с такой цепочкой?
             if (_trades.Any(trade => trade.ArbitrageChain.Equals(arbitrageChain) && !trade.LongTrade.IsClosed && !trade.ShortTrade.IsClosed))
