@@ -1,5 +1,6 @@
 ﻿using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
+using System.Diagnostics;
 
 namespace CoreLibrary.Models.Services
 {
@@ -21,10 +22,9 @@ namespace CoreLibrary.Models.Services
 			_chains = GetArbitrageChains(_coins, _exchanges);
 		}
 
-		public IEnumerable<ArbitrageChain> GetUpdatedChains(decimal minimumTotalDivergence)
+		public async Task<IEnumerable<ArbitrageChain>> GetUpdatedChains(decimal minimumTotalDivergence)
 		{
-			var filteredChains = new List<ArbitrageChain>();
-			Parallel.ForEach(_chains, chain =>
+			var tasks = _chains.Select(async chain =>
 			{
 				var totalDivergence = chain.GetTotalDivergence();
 				var longAveragePrice = chain.FromExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Long);
@@ -36,11 +36,17 @@ namespace CoreLibrary.Models.Services
 					longAveragePrice < shortAveragePrice &&
 					(fromExchangeSpread + toExchangeSpread) < totalDivergence)
 				{
-					filteredChains.Add(chain);
+					return chain;
+				}
+				else
+				{
+					return null;
 				}
 			});
 
-			return filteredChains;
+			var chains = await Task.WhenAll(tasks);
+
+			return chains.Where(c => c != null);
 		}
 
 		private List<ArbitrageChain> GetArbitrageChains(List<CryptoCoin> coins, List<Exchange> exchanges)
@@ -49,9 +55,7 @@ namespace CoreLibrary.Models.Services
 				.SelectMany(coin => GetExchangesCombinations(exchanges)
 					.Where(exchangePair =>
 						exchangePair.Item1.HasCoin(coin) &&
-						exchangePair.Item2.MarginCoins.Contains(coin) &&
-						//Kucoin не может стоять на 2 месте, т.к. у них недоступна маржинальная торговля для необходимых нам монет
-						exchangePair.Item2.Name != "Kucoin")
+						exchangePair.Item2.MarginCoins.Contains(coin))
 					.Select(exchangePair => new ArbitrageChain(coin, exchangePair.Item1, exchangePair.Item2, _divergencePeriod)))
 					.ToList();
 		}
