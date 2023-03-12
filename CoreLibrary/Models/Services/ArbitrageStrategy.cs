@@ -20,6 +20,8 @@ namespace CoreLibrary.Models.Services
 		private readonly decimal _takeProfit;
 		private readonly decimal _stopLoss;
 		private readonly int _minimumSecondsOfChainHolding;
+		private readonly Dictionary<ArbitrageChain, DateTime> _arbitrageChainsDiscoveryTimes;
+		private readonly Dictionary<ArbitrageChain, Message> _arbitrageChainsTelegramMessages;
 
 		public ArbitrageStrategy(List<CryptoCoin> coins, List<Exchange> exchanges, decimal minimumTotalDivergence, int divergencePeriod,
 			int minimumSecondsInTrade, decimal takeProfit, decimal stopLoss, decimal amountPerTrade, int minimumSecondsOfChainHolding)
@@ -31,6 +33,8 @@ namespace CoreLibrary.Models.Services
 			_takeProfit = takeProfit;
 			_stopLoss = stopLoss;
 			_minimumSecondsOfChainHolding = minimumSecondsOfChainHolding;
+			_arbitrageChainsTelegramMessages = new();
+			_arbitrageChainsDiscoveryTimes = new();
 
 			_arbitrageFinder = new ArbitrageFinder(coins, exchanges, divergencePeriod, amountPerTrade);
 			_tradesManager = new ArbitrageTradesManager(minimumSecondsInTrade, takeProfit, amountPerTrade, stopLoss);
@@ -45,86 +49,18 @@ namespace CoreLibrary.Models.Services
 
 			_ = Task.Run(async () =>
 			{
-				var arbitrageChainsDiscoveryTimes = new Dictionary<ArbitrageChain, DateTime>();
-				var telegramMessagesByArbitrageChains = new Dictionary<ArbitrageChain, Message>();
-
 				while (true)
 				{
 					try
 					{
-						var topChains = _arbitrageFinder.GetUpdatedChains(_minimumTotalDivergence);
+						var chains = await _arbitrageFinder.GetUpdatedChains(_minimumTotalDivergence);
+						RemoveIrrelevantChains(chains);
 
-						var chainsToRemove = arbitrageChainsDiscoveryTimes.Keys.Except(topChains).ToList();
-						foreach (var chain in chainsToRemove)
+						foreach (var chain in chains)
 						{
-							arbitrageChainsDiscoveryTimes.Remove(chain);
-							//if (telegramMessagesByArbitrageChains.TryGetValue(chain, out var message))
-							//{
-							//	_ = _telegramBotClient.DeleteMessageAsync(_telegramChatId, message.MessageId);
-							//	telegramMessagesByArbitrageChains.Remove(chain);
-							//}
-
-							Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: CHAIN REMOVED FROM POSSIBLE CHAINS FOR TRADES! {chain} {Environment.NewLine}");
-						}
-
-						foreach (var topChain in topChains)
-						{
-							if (!arbitrageChainsDiscoveryTimes.ContainsKey(topChain) && !_tradesManager.IsAnyOpenedTradeForChain(topChain))
-							{
-								Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: NEW CHAIN WAS DISCOVERED: {topChain} {Environment.NewLine}");
-								arbitrageChainsDiscoveryTimes[topChain] = DateTime.Now;
-
-								//var sendedMessage = await _telegramBotClient.SendTextMessageAsync(
-								//	chatId: _telegramChatId, 
-								//	text: 
-								//		$"🟡 {_minimumSecondsOfChainHolding} seconds " +
-								//		$"[{topChain.Coin.Name}, " +
-								//		$"<a href='{topChain.FromExchange.GetTradeLinkForCoin(topChain.Coin, TradeAction.Long)}'>{topChain.FromExchange.Name}</a>-" +
-								//		$"{Environment.NewLine}" +
-								//		$"<a href='{topChain.ToExchange.GetTradeLinkForCoin(topChain.Coin, TradeAction.Short)}'>{topChain.ToExchange.Name}</a>]", 
-								//	parseMode: ParseMode.Html,
-								//	disableWebPagePreview: true);
-
-								//telegramMessagesByArbitrageChains[topChain] = sendedMessage;
-							}
-							else if (arbitrageChainsDiscoveryTimes.TryGetValue(topChain, out var chainDiscovered))
-							{
-								if (DateTime.Now - chainDiscovered < TimeSpan.FromSeconds(_minimumSecondsOfChainHolding))
-									continue;
-
-								Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: CHAIN STAYED MORE THAN " +
-									$"{_minimumSecondsOfChainHolding} SECONDS. TRYING OPEN THE TRADE.");
-								
-								var newTrade = _tradesManager.TryOpenPositionByArbitrageChain(topChain);
-								//_ = _telegramBotClient.DeleteMessageAsync(_telegramChatId, telegramMessagesByArbitrageChains[topChain].MessageId);
-			
-								arbitrageChainsDiscoveryTimes.Remove(topChain);
-								//telegramMessagesByArbitrageChains.Remove(topChain);
-							}
-							else
-							{
-								//if (telegramMessagesByArbitrageChains.TryGetValue(topChain, out var message))
-								//{
-								//	var secondsLeftToOpenTrade = Math.Round(_minimumSecondsOfChainHolding - (DateTime.Now - arbitrageChainsDiscoveryTimes[topChain]).TotalSeconds, 2);
-								//	var fromExchangeTradeLink = topChain.FromExchange.GetTradeLinkForCoin(topChain.Coin, TradeAction.Long);
-								//	var toExchangeTradeLink = topChain.ToExchange.GetTradeLinkForCoin(topChain.Coin, TradeAction.Short);
-
-								//	var newMessage = $"🟡 {secondsLeftToOpenTrade} seconds to go! " +
-								//		$"[{topChain.Coin.Name}, " +
-								//		$"<a href='{fromExchangeTradeLink}'>{topChain.FromExchange.Name}</a>-" +
-								//		$"<a href='{toExchangeTradeLink}'>{topChain.ToExchange.Name}</a>]";
-
-								//	if (newMessage.Trim() != message.Text.Trim())
-								//	{
-								//		_ = _telegramBotClient.EditMessageTextAsync(
-								//				chatId: _telegramChatId,
-								//				messageId: message.MessageId,
-								//				text: newMessage,
-								//				parseMode: ParseMode.Html,
-								//				disableWebPagePreview: true);
-								//	}
-								//}
-							}
+							await NotifyIfNewChainDiscovered(chain);
+							TryOpenTrade(chain);
+							TryUpdateTelegramSignal(chain);
 						}
 
 						await Task.Delay(1);
@@ -138,6 +74,95 @@ namespace CoreLibrary.Models.Services
 			});
 		}
 
+		private void TryUpdateTelegramSignal(ArbitrageChain chain)
+		{
+			if (_arbitrageChainsTelegramMessages.TryGetValue(chain, out var message))
+			{
+				var secondsLeftToOpenTrade = Math.Round(_minimumSecondsOfChainHolding - (DateTime.Now - _arbitrageChainsDiscoveryTimes[chain]).TotalSeconds, 2);
+				var fromExchangeTradeLink = chain.FromExchange.GetTradeLinkForCoin(chain.Coin, TradeAction.Long);
+				var toExchangeTradeLink = chain.ToExchange.GetTradeLinkForCoin(chain.Coin, TradeAction.Short);
+
+				var newMessage = $"🟡 {secondsLeftToOpenTrade} seconds to go! " +
+					$"[{chain.Coin.Name}, " +
+					$"<a href='{fromExchangeTradeLink}'>{chain.FromExchange.Name}</a>-" +
+					$"<a href='{toExchangeTradeLink}'>{chain.ToExchange.Name}</a>]";
+
+				if (newMessage.Trim() != message.Text.Trim())
+				{
+					_ = _telegramBotClient.EditMessageTextAsync(
+							chatId: _telegramChatId,
+							messageId: message.MessageId,
+							text: newMessage,
+							parseMode: ParseMode.Html,
+							disableWebPagePreview: true);
+				}
+			}
+		}
+
+		private bool TryOpenTrade(ArbitrageChain chain)
+		{
+			if (_arbitrageChainsDiscoveryTimes.TryGetValue(chain, out var chainDiscovered))
+			{
+				if (DateTime.Now - chainDiscovered < TimeSpan.FromSeconds(_minimumSecondsOfChainHolding))
+					return false;
+
+				Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: CHAIN STAYED MORE THAN " +
+					$"{_minimumSecondsOfChainHolding} SECONDS. TRYING OPEN THE TRADE.");
+
+				var newTrade = _tradesManager.TryOpenTradeByArbitrageChain(chain);
+				_ = _telegramBotClient.DeleteMessageAsync(_telegramChatId, _arbitrageChainsTelegramMessages[chain].MessageId);
+
+				_arbitrageChainsDiscoveryTimes.Remove(chain);
+				_arbitrageChainsTelegramMessages.Remove(chain);
+
+				return newTrade is not null;
+			}
+
+			return false;
+		}
+
+		private async Task<bool> NotifyIfNewChainDiscovered(ArbitrageChain chain)
+		{
+			if (!_arbitrageChainsDiscoveryTimes.ContainsKey(chain) && !_tradesManager.IsAnyOpenedTradeForChain(chain))
+			{
+				Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: NEW CHAIN WAS DISCOVERED: {chain} {Environment.NewLine}");
+				_arbitrageChainsDiscoveryTimes[chain] = DateTime.Now;
+
+				var sendedMessage = await _telegramBotClient.SendTextMessageAsync(
+					chatId: _telegramChatId,
+					text:
+						$"🟡 {_minimumSecondsOfChainHolding} seconds " +
+						$"[{chain.Coin.Name}, " +
+						$"<a href='{chain.FromExchange.GetTradeLinkForCoin(chain.Coin, TradeAction.Long)}'>{chain.FromExchange.Name}</a>-" +
+						$"{Environment.NewLine}" +
+						$"<a href='{chain.ToExchange.GetTradeLinkForCoin(chain.Coin, TradeAction.Short)}'>{chain.ToExchange.Name}</a>]",
+					parseMode: ParseMode.Html,
+					disableWebPagePreview: true);
+
+				_arbitrageChainsTelegramMessages[chain] = sendedMessage;
+
+				return true;
+			}
+
+			return false;
+		}
+
+		private void RemoveIrrelevantChains(IEnumerable<ArbitrageChain> chains)
+		{
+			var chainsToRemove = _arbitrageChainsDiscoveryTimes.Keys.Except(chains).ToList();
+			foreach (var chain in chainsToRemove)
+			{
+				_arbitrageChainsDiscoveryTimes.Remove(chain);
+				if (_arbitrageChainsTelegramMessages.TryGetValue(chain, out var message))
+				{
+					_ = _telegramBotClient.DeleteMessageAsync(_telegramChatId, message.MessageId);
+					_arbitrageChainsTelegramMessages.Remove(chain);
+				}
+
+				Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: CHAIN REMOVED FROM POSSIBLE CHAINS FOR TRADES! {chain} {Environment.NewLine}");
+			}
+		}
+
 		private void ArbitrageTradesManager_OnTradeOpened(ArbitrageTrade trade)
 		{
 			var fromExchangeName = trade.ArbitrageChain.FromExchange.Name;
@@ -149,17 +174,17 @@ namespace CoreLibrary.Models.Services
 			var shortPrice = trade.ShortTrade.EntryPrice;
 			var shortAmount = trade.ShortTrade.Amount;
 
-			//_ = _telegramBotClient.SendTextMessageAsync(_telegramChatId,
-			//		$"🟢 " +
-			//		$"[{trade.ArbitrageChain.Coin.Name}, " +
-			//		$"<a href='{fromExchangeTradeLink}'>{fromExchangeName}</a>-" +
-			//		$"<a href='{toExchangeTradeLink}'>{toExchangeName}</a>]" +
-			//		$"{Environment.NewLine}" +
-			//		$"{fromExchangeName}: {longAmount}шт/{Math.Round(longAmount * longPrice, 6).Normalize()}$ " +
-			//		$"{Environment.NewLine}" +
-			//		$"{toExchangeName}: {shortAmount}шт/{Math.Round(shortAmount * shortPrice, 6).Normalize()}$",
-			//		ParseMode.Html,
-			//		disableWebPagePreview: true);
+			_ = _telegramBotClient.SendTextMessageAsync(_telegramChatId,
+					$"🟢 " +
+					$"[{trade.ArbitrageChain.Coin.Name}, " +
+					$"<a href='{fromExchangeTradeLink}'>{fromExchangeName}</a>-" +
+					$"<a href='{toExchangeTradeLink}'>{toExchangeName}</a>]" +
+					$"{Environment.NewLine}" +
+					$"{fromExchangeName}: {longAmount}шт/{Math.Round(longAmount * longPrice, 6).Normalize()}$ " +
+					$"{Environment.NewLine}" +
+					$"{toExchangeName}: {shortAmount}шт/{Math.Round(shortAmount * shortPrice, 6).Normalize()}$",
+					ParseMode.Html,
+					disableWebPagePreview: true);
 
 			Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: OPENED TRADE {trade} {Environment.NewLine}");
 		}
@@ -176,14 +201,14 @@ namespace CoreLibrary.Models.Services
 			var fromExchangeName = trade.ArbitrageChain.FromExchange.Name;
 			var toExchangeName = trade.ArbitrageChain.ToExchange.Name;
 
-			//_ = _telegramBotClient.SendTextMessageAsync(
-			//		chatId: _telegramChatId,
-			//		text: 
-			//			$"🔴[{trade.ArbitrageChain.Coin.Name}, " +
-			//			$"<a href='{fromExchangeTradeLink}'>{fromExchangeName}</a> {trade.LongTrade.Amount}шт. - " +
-			//			$"<a href='{toExchangeTradeLink}'>{toExchangeName}</a> {trade.ShortTrade.Amount}шт.]",
-			//		parseMode: ParseMode.Html,
-			//		disableWebPagePreview: true);
+			_ = _telegramBotClient.SendTextMessageAsync(
+					chatId: _telegramChatId,
+					text: 
+						$"🔴[{trade.ArbitrageChain.Coin.Name}, " +
+						$"<a href='{fromExchangeTradeLink}'>{fromExchangeName}</a> {trade.LongTrade.Amount}шт. - " +
+						$"<a href='{toExchangeTradeLink}'>{toExchangeName}</a> {trade.ShortTrade.Amount}шт.]",
+					parseMode: ParseMode.Html,
+					disableWebPagePreview: true);
 
 			Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: CLOSED TRADE {trade} {Environment.NewLine}");
 			
