@@ -233,12 +233,12 @@ namespace CoreLibrary.Models.Exchanges
 		private readonly BinanceSocketClient _socketClient = new();
         private readonly BinanceClient _client = new();
 
-		public override async Task UpdateCoinPrices()
+		public override async Task StartUpdatingMarketData()
 		{
-            if (!IsCoinsWithoutMarginRemoved)
+            if (!IsNonExistentCoinsRemoved)
             {
-                await RemoveCoinsWithoutMarginTrading();
-                IsCoinsWithoutMarginRemoved = true;
+                await RemoveNonExistentCoins();
+                IsNonExistentCoinsRemoved = true;
             }
 
             var tickers = coinPrices.Keys.Select(GetTickerByCoin);
@@ -258,7 +258,7 @@ namespace CoreLibrary.Models.Exchanges
             });
         }
 
-		protected override async Task RemoveCoinsWithoutMarginTrading()
+		protected override async Task RemoveNonExistentCoins()
 		{
             var result = await _client.SpotApi.ExchangeData.GetExchangeInfoAsync();
 			foreach (var coin in coinPrices.Keys.ToList())

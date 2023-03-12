@@ -9,33 +9,22 @@ namespace CoreLibrary.Models.Exchanges.Base
         public abstract string Name { get; }
         public abstract TickersInfo TickersInfo { get; }
         public abstract List<CryptoCoin> MarginCoins { get; }
-        public bool IsAllMarketDataLoaded => !coinPrices.Values.Any(v => v.LastTradeDateTime == DateTime.MinValue);
-        protected bool IsCoinsWithoutMarginRemoved = false;
+        protected bool IsNonExistentCoinsRemoved = false;
         protected readonly Dictionary<CryptoCoin, MarketData> coinPrices;
-        private bool _isMarketDataLoading = false;
 
         protected Exchange()
         {
-            coinPrices = CoinsUtils.GetCoins().ToDictionary(key => key, value => new MarketData());
+            coinPrices = CoinsUtils.GetCoins().ToDictionary(key => key, value => new MarketData(this, value));
         }
 
         public abstract string GetTradeLinkForCoin(CryptoCoin coin, TradeAction tradeAction);
-
-        public void StartUpdatingMarketData()
-        {
-            if (!_isMarketDataLoading)
-            {
-                _ = Task.Run(UpdateCoinPrices);
-                _isMarketDataLoading = true;
-            }
-        }
 
         public MarketData GetCoinMarketData(CryptoCoin coin)
         {
             if (coinPrices.TryGetValue(coin, out MarketData value))
                 return value;
             else
-                return new();
+                return new(this, coin);
         }
 
         public bool HasCoin(CryptoCoin coin)
@@ -43,9 +32,9 @@ namespace CoreLibrary.Models.Exchanges.Base
             return coinPrices.ContainsKey(coin);
         }
 
-        public abstract Task UpdateCoinPrices();
+        public abstract Task StartUpdatingMarketData();
 
-        protected abstract Task RemoveCoinsWithoutMarginTrading();
+        protected abstract Task RemoveNonExistentCoins();
 
         protected string GetTickerByCoin(CryptoCoin coin)
         {

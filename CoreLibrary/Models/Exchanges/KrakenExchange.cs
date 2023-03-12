@@ -62,12 +62,12 @@ namespace CoreLibrary.Models.Exchanges
 		private readonly KrakenClient _client = new();
 		private readonly KrakenSocketClient _socketClient = new();
 
-		public override async Task UpdateCoinPrices()
+		public override async Task StartUpdatingMarketData()
 		{
-			if (!IsCoinsWithoutMarginRemoved)
+			if (!IsNonExistentCoinsRemoved)
 			{
-				await RemoveCoinsWithoutMarginTrading();
-				IsCoinsWithoutMarginRemoved = true;
+				await RemoveNonExistentCoins();
+				IsNonExistentCoinsRemoved = true;
 			}
 
             var tickers = coinPrices.Keys.Select(GetTickerByCoin);
@@ -86,7 +86,7 @@ namespace CoreLibrary.Models.Exchanges
 			});
 		}
 
-		protected override async Task RemoveCoinsWithoutMarginTrading()
+		protected override async Task RemoveNonExistentCoins()
 		{
 			var result = await _client.SpotApi.ExchangeData.GetSymbolsAsync();
 			foreach (var coin in coinPrices.Keys.ToList())

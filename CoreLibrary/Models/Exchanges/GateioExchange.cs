@@ -439,12 +439,12 @@ namespace CoreLibrary.Models.Exchanges
 		public override TickersInfo TickersInfo => new("_", CaseType.Uppercase, new("USDT"));
 		private readonly GateStreamClient _socketClient = new();
 
-		public override async Task UpdateCoinPrices()
+		public override async Task StartUpdatingMarketData()
 		{
-			if (!IsCoinsWithoutMarginRemoved)
+			if (!IsNonExistentCoinsRemoved)
 			{
-				await RemoveCoinsWithoutMarginTrading();
-				IsCoinsWithoutMarginRemoved = true;
+				await RemoveNonExistentCoins();
+				IsNonExistentCoinsRemoved = true;
 			}
 
 			var socketClient = new WebsocketClient(new Uri("wss://api.gateio.ws/ws/v4/"));
@@ -458,7 +458,7 @@ namespace CoreLibrary.Models.Exchanges
 				var newTick = JObject.Parse(message.Text);
 
 				var coin = GetCoinByTicker(newTick["result"]["currency_pair"].ToString());
-				coinPrices[coin].AddTick(decimal.Parse(newTick["result"]["price"].ToString().Replace(".", ",")), DateTime.UtcNow);
+				coinPrices[coin].AddTick(decimal.Parse(newTick["result"]["price"].ToString()), DateTime.UtcNow);
 			});
 
 			var tickers = string.Join(",", coinPrices.Keys.Select(c => "\"" + GetTickerByCoin(c) + "\""));
@@ -477,7 +477,7 @@ namespace CoreLibrary.Models.Exchanges
 			}
 		}
 
-		protected override async Task RemoveCoinsWithoutMarginTrading()
+		protected override async Task RemoveNonExistentCoins()
 		{
 			using var httpClient = new HttpClient();
 			using var result = await httpClient.GetAsync("https://api.gateio.ws/api/v4/spot/currency_pairs");

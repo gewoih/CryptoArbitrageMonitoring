@@ -149,12 +149,12 @@ namespace CoreLibrary.Models.Exchanges
 		private readonly OkexSocketClient _socketClient = new();
         private readonly OkexClient _client = new();
 
-        public override async Task UpdateCoinPrices()
+        public override async Task StartUpdatingMarketData()
         {
-            if (!IsCoinsWithoutMarginRemoved)
+            if (!IsNonExistentCoinsRemoved)
             {
-                await RemoveCoinsWithoutMarginTrading();
-                IsCoinsWithoutMarginRemoved = true;
+                await RemoveNonExistentCoins();
+                IsNonExistentCoinsRemoved = true;
             }
 
             foreach (var coin in coinPrices.Keys)
@@ -177,7 +177,7 @@ namespace CoreLibrary.Models.Exchanges
             }
         }
 
-        protected override async Task RemoveCoinsWithoutMarginTrading()
+        protected override async Task RemoveNonExistentCoins()
         {
             var result = await _client.GetInstrumentsAsync(OkexInstrumentType.Spot);
             foreach (var coin in coinPrices.Keys.ToList())
