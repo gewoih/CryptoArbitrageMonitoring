@@ -21,6 +21,7 @@
     <PackageReference Include="Kucoin.Net" Version="4.3.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
     <PackageReference Include="OKEx.Net" Version="5.3.1" />
+    <PackageReference Include="Telegram.Bot" Version="18.0.0" />
     <PackageReference Include="Websocket.Client" Version="4.6.1" />
   </ItemGroup>
 

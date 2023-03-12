@@ -8,6 +8,7 @@ namespace CoreLibrary.Models.Exchanges.Base
     {
         public abstract string Name { get; }
         public abstract TickersInfo TickersInfo { get; }
+        public abstract List<CryptoCoin> MarginCoins { get; }
         public bool IsAllMarketDataLoaded => !coinPrices.Values.Any(v => v.LastTradeDateTime == DateTime.MinValue);
         protected bool IsCoinsWithoutMarginRemoved = false;
         protected readonly Dictionary<CryptoCoin, MarketData> coinPrices;
@@ -17,6 +18,8 @@ namespace CoreLibrary.Models.Exchanges.Base
         {
             coinPrices = CoinsUtils.GetCoins().ToDictionary(key => key, value => new MarketData());
         }
+
+        public abstract string GetTradeLinkForCoin(CryptoCoin coin, TradeAction tradeAction);
 
         public void StartUpdatingMarketData()
         {

@@ -1,69 +1,499 @@
 ﻿using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
 using Gate.IO.Api;
-using Gate.IO.Api.Enums;
 using Newtonsoft.Json.Linq;
 using Websocket.Client;
 
 namespace CoreLibrary.Models.Exchanges
 {
-    public sealed class GateioExchange : Exchange
-    {
-        public override string Name => "Gateio";
-        public override TickersInfo TickersInfo => new("_", CaseType.Uppercase, new("USDT"));
-        private readonly GateRestApiClient _client = new();
-        private readonly GateStreamClient _socketClient = new();
+	public sealed class GateioExchange : Exchange
+	{
+		public override string Name => "Gateio";
+		public override List<CryptoCoin> MarginCoins => new()
+		{
+			new("USDT"),
+			new("BTC"),
+			new("ETH"),
+			new("LQTY"),
+			new("FLOKI"),
+			new("FIL"),
+			new("LTC"),
+			new("AGIX"),
+			new("BLUR"),
+			new("SHIB"),
+			new("XRP"),
+			new("CFX"),
+			new("APT"),
+			new("HFT"),
+			new("DOGE"),
+			new("MAGIC"),
+			new("SOL"),
+			new("BNB"),
+			new("VGX"),
+			new("WEMIX"),
+			new("VRA"),
+			new("DOT"),
+			new("RNDR"),
+			new("TRX"),
+			new("DYDX"),
+			new("EVER"),
+			new("MATIC"),
+			new("OP"),
+			new("SDAO"),
+			new("OCEAN"),
+			new("GALA"),
+			new("JASMY"),
+			new("KEY"),
+			new("MINA"),
+			new("EOS"),
+			new("FTM"),
+			new("LUNC"),
+			new("TRU"),
+			new("HIGH"),
+			new("HOOK"),
+			new("HBAR"),
+			new("LUNA"),
+			new("ADA"),
+			new("ATOM"),
+			new("XCN"),
+			new("DODO"),
+			new("LINK"),
+			new("ETC"),
+			new("SSV"),
+			new("FLR"),
+			new("ASTR"),
+			new("STG"),
+			new("ACH"),
+			new("HT"),
+			new("HAI"),
+			new("CRV"),
+			new("FLUX"),
+			new("AVAX"),
+			new("LOOKS"),
+			new("FTT"),
+			new("RPL"),
+			new("FLOW"),
+			new("FET"),
+			new("DREP"),
+			new("ICP"),
+			new("BAT"),
+			new("NEAR"),
+			new("DAO"),
+			new("IMX"),
+			new("UNI"),
+			new("VELO"),
+			new("RIF"),
+			new("RACA"),
+			new("USDD"),
+			new("BABYDOGE"),
+			new("MASK"),
+			new("CSPR"),
+			new("GT"),
+			new("ETHW"),
+			new("APE"),
+			new("LDO"),
+			new("BTT"),
+			new("FITFI"),
+			new("GMT"),
+			new("SAND"),
+			new("CVP"),
+			new("METIS"),
+			new("FXS"),
+			new("VOXEL"),
+			new("BCH"),
+			new("CHZ"),
+			new("PEOPLE"),
+			new("GRT"),
+			new("CORE"),
+			new("YFII"),
+			new("SPA"),
+			new("KDA"),
+			new("XDB"),
+			new("BSV"),
+			new("ALGO"),
+			new("SLP"),
+			new("XMR"),
+			new("QRDO"),
+			new("QTUM"),
+			new("DASH"),
+			new("SUN"),
+			new("BNX"),
+			new("FIS"),
+			new("GST"),
+			new("CRO"),
+			new("SRM"),
+			new("ATLAS"),
+			new("CEEK"),
+			new("BNC"),
+			new("BONK"),
+			new("JST"),
+			new("NFT"),
+			new("XCH"),
+			new("GARI"),
+			new("ZEC"),
+			new("XLM"),
+			new("OSMO"),
+			new("GLMR"),
+			new("SUSHI"),
+			new("MKR"),
+			new("CKB"),
+			new("IRIS"),
+			new("CRPT"),
+			new("AR"),
+			new("MOB"),
+			new("DC"),
+			new("BLOK"),
+			new("REDTOKEN"),
+			new("ELON"),
+			new("ANC"),
+			new("1INCH"),
+			new("GAL"),
+			new("ALN"),
+			new("DF"),
+			new("ROSE"),
+			new("WOO"),
+			new("KAVA"),
+			new("AAVE"),
+			new("MXC"),
+			new("HNT"),
+			new("KLAY"),
+			new("ZIL"),
+			new("MANA"),
+			new("BICO"),
+			new("HOT"),
+			new("TWT"),
+			new("YGG"),
+			new("ZEN"),
+			new("RFOX"),
+			new("SNX"),
+			new("WAVES"),
+			new("VET"),
+			new("BLZ"),
+			new("SANTOS"),
+			new("EGLD"),
+			new("ALCX"),
+			new("MDX"),
+			new("CQT"),
+			new("LPT"),
+			new("AKITA"),
+			new("ISP"),
+			new("PYR"),
+			new("ERG"),
+			new("KISHU"),
+			new("YFI"),
+			new("SWASH"),
+			new("ALICE"),
+			new("API3"),
+			new("QNT"),
+			new("NEO"),
+			new("QUACK"),
+			new("REN"),
+			new("MIR"),
+			new("WOZX"),
+			new("NYM"),
+			new("PERP"),
+			new("KIN"),
+			new("ENS"),
+			new("RSS3"),
+			new("CRU"),
+			new("GHST"),
+			new("MOVR"),
+			new("TKO"),
+			new("RLY"),
+			new("AGLD"),
+			new("BIT"),
+			new("ANKR"),
+			new("PHA"),
+			new("SCLP"),
+			new("T"),
+			new("KSM"),
+			new("LAZIO"),
+			new("BTS"),
+			new("ACA"),
+			new("SERO"),
+			new("RARE"),
+			new("STARL"),
+			new("THETA"),
+			new("RSR"),
+			new("WING"),
+			new("ASR"),
+			new("EFI"),
+			new("SDN"),
+			new("QUICK"),
+			new("CHESS"),
+			new("RARI"),
+			new("CWEB"),
+			new("IOST"),
+			new("BOSON"),
+			new("XTZ"),
+			new("PORTO"),
+			new("ATA"),
+			new("NBS"),
+			new("XEM"),
+			new("SXP"),
+			new("BTM"),
+			new("MTRG"),
+			new("WILD"),
+			new("BZZ"),
+			new("XPR"),
+			new("SOS"),
+			new("WNCG"),
+			new("UFT"),
+			new("AIOZ"),
+			new("LIT"),
+			new("AUTO"),
+			new("PNT"),
+			new("ONE"),
+			new("SYS"),
+			new("OKB"),
+			new("HMT"),
+			new("CLV"),
+			new("AUDIO"),
+			new("UMEE"),
+			new("OMG"),
+			new("BTCST"),
+			new("WAXP"),
+			new("LTO"),
+			new("ZKS"),
+			new("RAD"),
+			new("AKRO"),
+			new("SLIM"),
+			new("CAKE"),
+			new("NEXO"),
+			new("OCT"),
+			new("LOKA"),
+			new("BADGER"),
+			new("ARPA"),
+			new("FIDA"),
+			new("C98"),
+			new("BEAM"),
+			new("UNFI"),
+			new("XYO"),
+			new("OGN"),
+			new("AUCTION"),
+			new("COTI"),
+			new("RVN"),
+			new("COMP"),
+			new("REEF"),
+			new("CELO"),
+			new("BSW"),
+			new("BAKE"),
+			new("TLM"),
+			new("AE"),
+			new("BOND"),
+			new("ANML"),
+			new("ANT"),
+			new("DENT"),
+			new("CERE"),
+			new("RLC"),
+			new("FIRO"),
+			new("ONT"),
+			new("EPK"),
+			new("XEC"),
+			new("SUKU"),
+			new("ICX"),
+			new("CHR"),
+			new("OMI"),
+			new("SWEAT"),
+			new("CELR"),
+			new("ERN"),
+			new("HORD"),
+			new("SNT"),
+			new("POLS"),
+			new("ZRX"),
+			new("FLY"),
+			new("FEVR"),
+			new("CTK"),
+			new("DIA"),
+			new("FRONT"),
+			new("LSS"),
+			new("LINA"),
+			new("FIC"),
+			new("O3"),
+			new("STORJ"),
+			new("WRX"),
+			new("MBL"),
+			new("SPELL"),
+			new("TFUEL"),
+			new("KAR"),
+			new("GM"),
+			new("PROS"),
+			new("POLC"),
+			new("CONV"),
+			new("MBOX"),
+			new("HERO"),
+			new("FOR"),
+			new("BENQI"),
+			new("DEGO"),
+			new("WSG"),
+			new("WHALE"),
+			new("XVS"),
+			new("STAR"),
+			new("POND"),
+			new("SC"),
+			new("LAMB"),
+			new("SUNNY"),
+			new("FARM"),
+			new("ALPHA"),
+			new("IOTX"),
+			new("REQ"),
+			new("BCD"),
+			new("HAPI"),
+			new("MTL"),
+			new("AERGO"),
+			new("ALPACA"),
+			new("DORA"),
+			new("TIDAL"),
+			new("SHFT"),
+			new("HEGIC"),
+			new("OOKI"),
+			new("AVA"),
+			new("PIG"),
+			new("WXT"),
+			new("GRIN"),
+			new("KAI"),
+			new("DATA"),
+			new("ARES"),
+			new("ONG"),
+			new("LEO"),
+			new("XPRT"),
+			new("MTV"),
+			new("WSIENNA"),
+			new("NEBL"),
+			new("XYM"),
+			new("JULD"),
+			new("SUPER"),
+			new("TARA"),
+			new("PLA"),
+			new("PMON"),
+			new("TRIBE"),
+			new("ALPINE"),
+			new("GNO"),
+			new("WICC"),
+			new("LEMD"),
+			new("WIKEN"),
+			new("FORTH"),
+			new("DVI"),
+			new("NAS"),
+			new("INSUR"),
+			new("MLN"),
+			new("MDA"),
+			new("KONO"),
+			new("MAPS"),
+			new("JGN"),
+			new("OM"),
+			new("VIDY"),
+			new("GMAT"),
+			new("EGS"),
+			new("PEARL"),
+			new("ASM"),
+			new("DDOS"),
+			new("FEI"),
+			new("SPS"),
+			new("TIPS"),
+			new("OCN"),
+			new("LRN"),
+			new("ATP"),
+			new("GTC"),
+			new("CART"),
+			new("PROPS"),
+			new("CYS"),
+			new("CRP"),
+			new("CNNS"),
+			new("EDEN"),
+			new("RAI"),
+			new("YAM"),
+			new("BAS"),
+			new("IDV"),
+			new("LON"),
+			new("BAC"),
+			new("LION"),
+			new("BLES"),
+			new("SAFEMARS"),
+			new("OXY"),
+			new("PET"),
+			new("DOGGY"),
+			new("COOK"),
+			new("DOG"),
+			new("ASD"),
+			new("KIMCHI"),
+			new("DAR"),
+			new("YIELD"),
+			new("BLANK"),
+			new("BZRX"),
+			new("CTX"),
+			new("FEG"),
+			new("GXS"),
+			new("KEEP"),
+			new("NU"),
+			new("RAMP"),
+			new("SAFEMOON"),
+			new("SPI"),
+			new("TONCOIN"),
+			new("BCHA"),
+			new("BOR"),
+			new("EPS"),
+			new("POLY"),
+			new("USDC")
+		};
+		public override TickersInfo TickersInfo => new("_", CaseType.Uppercase, new("USDT"));
+		private readonly GateStreamClient _socketClient = new();
 
-        public override async Task UpdateCoinPrices()
-        {
-            if (!IsCoinsWithoutMarginRemoved)
-            {
-                await RemoveCoinsWithoutMarginTrading();
-                IsCoinsWithoutMarginRemoved = true;
-            }
+		public override async Task UpdateCoinPrices()
+		{
+			if (!IsCoinsWithoutMarginRemoved)
+			{
+				await RemoveCoinsWithoutMarginTrading();
+				IsCoinsWithoutMarginRemoved = true;
+			}
 
-            var socketClient = new WebsocketClient(new Uri("wss://api.gateio.ws/ws/v4/"));
-            await socketClient.Start();
+			var socketClient = new WebsocketClient(new Uri("wss://api.gateio.ws/ws/v4/"));
+			await socketClient.Start();
 
-            socketClient.MessageReceived.Subscribe((message) =>
-            {
-                if (!message.Text.Contains("price"))
-                    return;
+			socketClient.MessageReceived.Subscribe((message) =>
+			{
+				if (!message.Text.Contains("price"))
+					return;
 
-                var newTick = JObject.Parse(message.Text);
+				var newTick = JObject.Parse(message.Text);
 
-                var coin = GetCoinByTicker(newTick["result"]["currency_pair"].ToString());
-                coinPrices[coin].AddTick(decimal.Parse(newTick["result"]["price"].ToString()), DateTime.UtcNow);
-            });
+				var coin = GetCoinByTicker(newTick["result"]["currency_pair"].ToString());
+				coinPrices[coin].AddTick(decimal.Parse(newTick["result"]["price"].ToString().Replace(".", ",")), DateTime.UtcNow);
+			});
 
-            var tickers = string.Join(",", coinPrices.Keys.Select(c => "\"" + GetTickerByCoin(c) + "\""));
-            socketClient.Send(@"{ ""channel"": ""spot.trades"", ""event"": ""subscribe"", ""payload"": [" + tickers + "]}");
-            
-            foreach (var coin in coinPrices.Keys)
-            {
-                var ticker = GetTickerByCoin(coin);
-                await _socketClient.Spot.SubscribeToOrderBookSnapshotsAsync(ticker, 100, 100, (update) =>
-                {
-                    coinPrices[coin].UpdateOrderBook(
-                        update.Data.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
-                        update.Data.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)),
-                        true);
-                });
-            }
-        }
+			var tickers = string.Join(",", coinPrices.Keys.Select(c => "\"" + GetTickerByCoin(c) + "\""));
+			socketClient.Send(@"{ ""channel"": ""spot.trades"", ""event"": ""subscribe"", ""payload"": [" + tickers + "]}");
 
-        protected override async Task RemoveCoinsWithoutMarginTrading()
-        {
-            using var httpClient = new HttpClient();
-            using var result = await httpClient.GetAsync("https://api.gateio.ws/api/v4/spot/currency_pairs");
+			foreach (var coin in coinPrices.Keys)
+			{
+				var ticker = GetTickerByCoin(coin);
+				await _socketClient.Spot.SubscribeToOrderBookSnapshotsAsync(ticker, 100, 100, (update) =>
+				{
+					coinPrices[coin].UpdateOrderBook(
+						update.Data.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
+						update.Data.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)),
+						true);
+				});
+			}
+		}
 
-            var tickers = JArray.Parse(await result.Content.ReadAsStringAsync());
-            foreach (var coin in coinPrices.Keys.ToList())
-            {
-                var pair = tickers.FirstOrDefault(d => d["id"].ToString() == GetTickerByCoin(coin));
-                if (pair is null || pair["trade_status"].ToString() == "untradable")
-                    coinPrices.Remove(coin);
-            }
-        }
-    }
+		protected override async Task RemoveCoinsWithoutMarginTrading()
+		{
+			using var httpClient = new HttpClient();
+			using var result = await httpClient.GetAsync("https://api.gateio.ws/api/v4/spot/currency_pairs");
+
+			var tickers = JArray.Parse(await result.Content.ReadAsStringAsync());
+			foreach (var coin in coinPrices.Keys.ToList())
+			{
+				var pair = tickers.FirstOrDefault(d => d["id"].ToString() == GetTickerByCoin(coin));
+				if (pair is null || pair["trade_status"].ToString() == "untradable")
+					coinPrices.Remove(coin);
+			}
+		}
+
+		public override string GetTradeLinkForCoin(CryptoCoin coin, TradeAction tradeAction)
+		{
+			return $"https://www.gate.io/trade/{coin.Name}_USDT";
+		}
+	}
 }

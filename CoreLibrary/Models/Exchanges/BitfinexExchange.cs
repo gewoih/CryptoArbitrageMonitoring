@@ -9,7 +9,54 @@ namespace CoreLibrary.Models.Exchanges
     {
         public override string Name => "Bitfinex";
         public override TickersInfo TickersInfo => new("", CaseType.Uppercase, new("USD"), "t");
-        private readonly BitfinexClient _client = new();
+		public override List<CryptoCoin> MarginCoins => new()
+        {
+		    new("BTC"),
+            new("LTC"),
+            new("ETH"),
+            new("ETC"),
+            new("ZEC"),
+            new("XMR"),
+            new("DASH"),
+            new("XRP"),
+            new("IOTA"),
+            new("EOS"),
+            new("OMG"),
+            new("NEO"),
+            new("PNT"),
+            new("ZRX"),
+            new("TRX"),
+            new("DAI"),
+            new("XLM"),
+            new("MKR"),
+            new("XTZ"),
+            new("USDt"),
+            new("ATOM"),
+            new("LEO"),
+            new("ALGO"),
+            new("XAUt"),
+            new("DOT"),
+            new("ADA"),
+            new("LINK"),
+            new("COMP"),
+            new("UNI"),
+            new("AVAX"),
+            new("EGLD"),
+            new("YFI"),
+            new("FIL"),
+            new("BCHN"),
+            new("SUSHI"),
+            new("SOL"),
+            new("DOGE"),
+            new("FTM"),
+            new("MATIC"),
+            new("AXS"),
+            new("SHIB"),
+            new("APE"),
+            new("ETHW"),
+            new("APT"),
+		};
+		private readonly BitfinexClient _client = new();
         private readonly BitfinexSocketClient _socketClient = new();
 
         public override async Task UpdateCoinPrices()
@@ -50,5 +97,13 @@ namespace CoreLibrary.Models.Exchanges
                     coinPrices.Remove(coin);
             }
         }
-    }
+
+		public override string GetTradeLinkForCoin(CryptoCoin coin, TradeAction tradeAction)
+		{
+			if (tradeAction == TradeAction.Long)
+				return $"https://trading.bitfinex.com/t/{coin.Name}:USD?type=exchange";
+			else
+				return $"https://trading.bitfinex.com/t/{coin.Name}:USD?type=margin";
+		}
+	}
 }

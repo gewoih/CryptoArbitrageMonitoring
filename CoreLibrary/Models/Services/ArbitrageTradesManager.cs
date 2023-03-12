@@ -6,8 +6,8 @@ namespace CoreLibrary.Models.Services
 {
     public sealed class ArbitrageTradesManager
     {
-        public event Action<ArbitrageTrade> OnTradeOpened;
-        public event Action<ArbitrageTrade> OnTradeClosed;
+        public event Action<ArbitrageTrade>? OnTradeOpened;
+        public event Action<ArbitrageTrade>? OnTradeClosed;
         private readonly ConcurrentBag<ArbitrageTrade> _trades;
         private readonly int _minimumSecondsInTrade;
         private readonly decimal _stopLoss;
@@ -33,6 +33,9 @@ namespace CoreLibrary.Models.Services
             var longTradePrice = arbitrageChain.FromExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Long);
             var shortTradePrice = arbitrageChain.ToExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Short);
 
+            if (longTradePrice == 0 || shortTradePrice == 0)
+                return null;
+
             var longAmount = (int)(_amountPerTrade / longTradePrice);
             var shortAmount = (int)(_amountPerTrade / shortTradePrice);
 
@@ -47,6 +50,11 @@ namespace CoreLibrary.Models.Services
             OnTradeOpened?.Invoke(newArbitrageTrade);
 
             return newArbitrageTrade;
+        }
+
+        public bool IsAnyOpenedTradeForChain(ArbitrageChain chain)
+        {
+            return _trades.Any(trade => !trade.IsClosed && trade.ArbitrageChain.Equals(chain));
         }
 
         private void StartClosingPositions()

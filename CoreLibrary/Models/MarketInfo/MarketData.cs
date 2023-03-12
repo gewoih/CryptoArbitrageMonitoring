@@ -10,40 +10,10 @@ namespace CoreLibrary.Models.MarketInfo
 		public readonly ConcurrentBag<Tick> Ticks;
 		public Tick Last => Ticks.Any() ? Ticks.MaxBy(t => t.Ticks) : new(0, 0);
 		public DateTime LastTradeDateTime => Ticks.Any() ? Ticks.MaxBy(t => t.Ticks).DateTime : DateTime.MinValue;
-		private readonly object _lock = new();
 
-		public decimal Ask
-		{
-			get
-			{
-				lock (_lock)
-				{
-					return _asks.Any() ? _asks.Min(a => a.Key) : 0;
-				}
-			}
-		}
-
-		public decimal Bid
-		{
-			get
-			{
-				lock (_lock)
-				{
-					return _bids.Any() ? _bids.Max(bid => bid.Key) : 0;
-				}
-			}
-		}
-
-		public decimal Spread
-		{
-			get
-			{
-				lock (_lock)
-				{
-					return Ask != 0 && Bid != 0 ? Math.Abs(Bid / Ask * 100 - 100) : 0;
-				}
-			}
-		}
+		public decimal Ask => _asks.Any() ? _asks.Min(a => a.Key) : 0;
+		public decimal Bid => _bids.Any() ? _bids.Max(bid => bid.Key) : 0;
+		public decimal Spread => Ask != 0 && Bid != 0 ? Math.Abs(Bid / Ask * 100 - 100) : 0;
 
 		public MarketData()
 		{

@@ -49,7 +49,7 @@ namespace CoreLibrary.Models.Services
 				.SelectMany(coin => GetExchangesCombinations(exchanges)
 					.Where(exchangePair =>
 						exchangePair.Item1.HasCoin(coin) &&
-						exchangePair.Item2.HasCoin(coin) &&
+						exchangePair.Item2.MarginCoins.Contains(coin) &&
 						//Kucoin не может стоять на 2 месте, т.к. у них недоступна маржинальная торговля для необходимых нам монет
 						exchangePair.Item2.Name != "Kucoin")
 					.Select(exchangePair => new ArbitrageChain(coin, exchangePair.Item1, exchangePair.Item2, _divergencePeriod)))

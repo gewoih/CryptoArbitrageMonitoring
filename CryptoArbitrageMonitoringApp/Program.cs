@@ -12,13 +12,13 @@ namespace CryptoArbitrageMonitoringApp
 		{
 			var exchanges = new List<Exchange>
 			{
-				//new BitfinexExchange(),
-				//new BinanceExchange(),
-				//new KucoinExchange(),
-				//new KrakenExchange(),
+				new BitfinexExchange(),
+				new BinanceExchange(),
+				new KucoinExchange(),
+				new KrakenExchange(),
 				new HuobiExchange(),
-				//new BybitExchange(),
-				//new OkxExchange(),
+				new BybitExchange(),
+				new OkxExchange(),
 				new GateioExchange(),
 			};
 
