@@ -1,25 +1,28 @@
 ﻿using CoreLibrary.Models.Enums;
+using CoreLibrary.Models.Exchanges.Base;
 using System.Collections.Concurrent;
 
 namespace CoreLibrary.Models.MarketInfo
 {
 	public sealed class MarketData
 	{
+		private Exchange _exchange;
+		private CryptoCoin _coin;
 		private ConcurrentDictionary<decimal, decimal> _bids;
 		private ConcurrentDictionary<decimal, decimal> _asks;
-		public readonly ConcurrentBag<Tick> Ticks;
-		public Tick Last => Ticks.Any() ? Ticks.MaxBy(t => t.Ticks) : new(0, 0);
-		public DateTime LastTradeDateTime => Ticks.Any() ? Ticks.MaxBy(t => t.Ticks).DateTime : DateTime.MinValue;
+		private readonly ConcurrentBag<Tick> Ticks;
+		public Tick Last = new(0, 0);
+		public decimal Ask = 0;
+		public decimal Bid = 0;
+		public decimal Spread = 0;
 
-		public decimal Ask => _asks.Any() ? _asks.Min(a => a.Key) : 0;
-		public decimal Bid => _bids.Any() ? _bids.Max(bid => bid.Key) : 0;
-		public decimal Spread => Ask != 0 && Bid != 0 ? Math.Abs(Bid / Ask * 100 - 100) : 0;
-
-		public MarketData()
+		public MarketData(Exchange exchange, CryptoCoin coin)
 		{
 			Ticks = new();
 			_bids = new();
 			_asks = new();
+			_exchange = exchange;
+			_coin = coin;
 		}
 
 		public bool AddTick(decimal lastPrice, DateTime time, int tradeNumber = -1)
@@ -28,19 +31,21 @@ namespace CoreLibrary.Models.MarketInfo
 			{
 				if (tradeNumber != -1)
 				{
-					if (Ticks.FirstOrDefault(t => t.Number == tradeNumber) is null)
-					{
-						Ticks.Add(new(tradeNumber, lastPrice, time.Ticks));
-						return true;
-					}
-					else
+					if (Ticks.FirstOrDefault(t => t.Number == tradeNumber) is not null)
 						return false;
+
+					var newTick = new Tick(tradeNumber, lastPrice, time.Ticks);
+					Ticks.Add(newTick);
+					Last = newTick;
 				}
 				else
 				{
-					Ticks.Add(new(lastPrice, time.Ticks));
-					return true;
+					var newTick = new Tick(lastPrice, time.Ticks);
+					Ticks.Add(newTick);
+					Last = newTick;
 				}
+				
+				return true;
 			}
 
 			return false;
@@ -52,25 +57,30 @@ namespace CoreLibrary.Models.MarketInfo
 			{
 				_bids = new ConcurrentDictionary<decimal, decimal>(bids);
 				_asks = new ConcurrentDictionary<decimal, decimal>(asks);
-				return;
+			}
+			else
+			{
+				foreach (var bid in bids)
+				{
+					if (bid.Value == 0)
+						_bids.TryRemove(bid.Key, out _);
+					else
+						_bids[bid.Key] = bid.Value;
+				}
+
+				foreach (var ask in asks)
+				{
+					if (ask.Value == 0)
+						_asks.TryRemove(ask.Key, out _);
+					else
+						_asks[ask.Key] = ask.Value;
+				}
 			}
 
-            foreach (var bid in bids)
-            {
-				if (bid.Value == 0)
-					_bids.TryRemove(bid.Key, out _);
-				else
-					_bids[bid.Key] = bid.Value;
-            }
-
-            foreach (var ask in asks)
-            {
-                if (ask.Value == 0)
-                    _asks.TryRemove(ask.Key, out _);
-                else
-                    _asks[ask.Key] = ask.Value;
-            }
-        }
+			Ask = _asks.Any() ? _asks.Min(a => a.Key) : 0;
+			Bid = _bids.Any() ? _bids.Max(bid => bid.Key) : 0;
+			Spread = Ask != 0 && Bid != 0 ? Math.Abs(Bid / Ask * 100 - 100) : 0;
+		}
 
 		public decimal GetSMA(int period)
 		{
@@ -113,10 +123,10 @@ namespace CoreLibrary.Models.MarketInfo
 					break;
 				}
 			}
-			
+
 			if (totalAmount == 0 || totalPrice < amount)
 				return 0;
-			
+
 			var averagePrice = totalPrice / totalAmount;
 
 			if (amount < averagePrice)
