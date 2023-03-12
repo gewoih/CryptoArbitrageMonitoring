@@ -5,7 +5,6 @@
         public readonly int Number;
         public readonly decimal Price;
         public readonly long Ticks;
-        public DateTime DateTime => DateTime.FromBinary(Ticks);
         
         public Tick(int number, decimal price, long ticks)
         {
