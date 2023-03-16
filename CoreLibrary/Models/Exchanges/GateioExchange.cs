@@ -467,13 +467,13 @@ namespace CoreLibrary.Models.Exchanges
 			foreach (var coin in coinPrices.Keys)
 			{
 				var ticker = GetTickerByCoin(coin);
-				await _socketClient.Spot.SubscribeToOrderBookSnapshotsAsync(ticker, 100, 100, (update) =>
+				_ = Task.Run(async () => await _socketClient.Spot.SubscribeToOrderBookSnapshotsAsync(ticker, 100, 100, (update) =>
 				{
 					coinPrices[coin].UpdateOrderBook(
 						update.Data.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
 						update.Data.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)),
 						true);
-				});
+				}));
 			}
 		}
 

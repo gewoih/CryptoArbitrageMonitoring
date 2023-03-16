@@ -160,12 +160,12 @@ namespace CoreLibrary.Models.Exchanges
             foreach (var coin in coinPrices.Keys)
             {
                 var ticker = GetTickerByCoin(coin);
-                await _socketClient.SubscribeToTradesAsync(ticker, (update) =>
+				_ = Task.Run(async () => await _socketClient.SubscribeToTradesAsync(ticker, (update) =>
                 {
                     coinPrices[coin].AddTick(update.Price, update.Time);
-                });
+                }));
 
-                await _socketClient.SubscribeToOrderBookAsync(ticker, OkexOrderBookType.OrderBook, (update) =>
+				_ = Task.Run(async () => await _socketClient.SubscribeToOrderBookAsync(ticker, OkexOrderBookType.OrderBook, (update) =>
                 {
                     var isFullOrderBook = update.Action == "snapshot";
 
@@ -173,7 +173,7 @@ namespace CoreLibrary.Models.Exchanges
                         update.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
                         update.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)),
                         isFullOrderBook);
-                });
+                }));
             }
         }
 

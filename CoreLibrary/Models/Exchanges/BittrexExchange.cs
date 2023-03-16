@@ -1,6 +1,9 @@
 ﻿using Bittrex.Net.Clients;
+using Bittrex.Net.SymbolOrderBooks;
+using Bybit.Net.SymbolOrderBooks;
 using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
+using CryptoExchange.Net.Objects;
 
 namespace CoreLibrary.Models.Exchanges
 {
@@ -25,35 +28,43 @@ namespace CoreLibrary.Models.Exchanges
 				IsNonExistentCoinsRemoved = true;
 			}
 
-			var tickers = coinPrices.Keys.Select(GetTickerByCoin);
-
-			await _socketClient.SpotStreams.SubscribeToTradeUpdatesAsync(tickers, (update) =>
+			foreach (var coin in coinPrices.Keys)
 			{
-				var coin = GetCoinByTicker(update.Data.Symbol);
+				var ticker = GetTickerByCoin(coin);
 
-				foreach (var tick in update.Data.Deltas)
+				var tradesUpdatingThread = new Thread(async () => await _socketClient.SpotStreams.SubscribeToTradeUpdatesAsync(ticker, (update) =>
 				{
-					coinPrices[coin].AddTick(tick.Price, tick.Timestamp);
-				}
-			});
+					foreach (var tick in update.Data.Deltas)
+					{
+						coinPrices[coin].AddTick(tick.Price, tick.Timestamp);
+					}
+				}));
 
-			await _socketClient.SpotStreams.SubscribeToOrderBookUpdatesAsync(tickers, 25, async (update) =>
-			{
-				var coin = GetCoinByTicker(update.Data.Symbol);
-
-				if (coinPrices[coin].Ask == 0 && coinPrices[coin].Bid == 0)
+				var orderBookUpdatingThread = new Thread(async () =>
 				{
-					var orderBook = await _client.SpotApi.ExchangeData.GetOrderBookAsync(update.Data.Symbol);
-					coinPrices[coin].UpdateOrderBook(
-						orderBook.Data.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
-						orderBook.Data.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)),
-						true);
-				}
+					var orderBook = new BittrexSymbolOrderBook(ticker, new() { Limit = 25 });
+					orderBook.OnStatusChange += (oldState, newState) =>
+					{
+						if (newState != OrderBookStatus.Synced)
+							coinPrices[coin].ClearOrderBook();
+					};
+					var startResult = await orderBook.StartAsync();
 
-				coinPrices[coin].UpdateOrderBook(
-					update.Data.BidDeltas.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
-					update.Data.AskDeltas.Select(a => KeyValuePair.Create(a.Price, a.Quantity)));
-			});
+					if (!startResult.Success)
+						Console.WriteLine($"Failed to start updating order book for exchange '{Name}'!");
+
+					orderBook.OnOrderBookUpdate += (update) =>
+					{
+						coinPrices[coin].UpdateOrderBook(
+							update.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
+							update.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)),
+							true);
+					};
+				});
+
+				tradesUpdatingThread.Start();
+				orderBookUpdatingThread.Start();
+			}
 		}
 
 		protected override async Task RemoveNonExistentCoins()

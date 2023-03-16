@@ -1,6 +1,9 @@
 ﻿using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
+using CryptoExchange.Net.Objects;
 using Kraken.Net.Clients;
+using Kraken.Net.SymbolOrderBooks;
+using Kucoin.Net.SymbolOrderBooks;
 
 namespace CoreLibrary.Models.Exchanges
 {
@@ -70,20 +73,40 @@ namespace CoreLibrary.Models.Exchanges
 				IsNonExistentCoinsRemoved = true;
 			}
 
-            var tickers = coinPrices.Keys.Select(GetTickerByCoin);
-            await _socketClient.SpotStreams.SubscribeToTickerUpdatesAsync(tickers, (update) =>
+			foreach (var coin in coinPrices.Keys)
 			{
-				var coin = GetCoinByTicker(update.Topic);
-				coinPrices[coin].AddTick(update.Data.LastTrade.Price, update.Timestamp);
-            });
+				var ticker = GetTickerByCoin(coin);
 
-			await _socketClient.SpotStreams.SubscribeToOrderBookUpdatesAsync(tickers, 1000, (update) =>
-			{
-                var coin = GetCoinByTicker(update.Topic);
-                coinPrices[coin].UpdateOrderBook(
-					update.Data.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
-					update.Data.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)));
-			});
+				var tradesUpdatingThread = new Thread(async () => await _socketClient.SpotStreams.SubscribeToTickerUpdatesAsync(ticker, (update) =>
+				{
+					coinPrices[coin].AddTick(update.Data.LastTrade.Price, update.Timestamp);
+				}));
+
+				var orderBookUpdatingThread = new Thread(async () =>
+				{
+					var orderBook = new KrakenSpotSymbolOrderBook(ticker, new() { Limit = 25 });
+					orderBook.OnStatusChange += (oldState, newState) =>
+					{
+						if (newState != OrderBookStatus.Synced)
+							coinPrices[coin].ClearOrderBook();
+					};
+					var startResult = await orderBook.StartAsync();
+
+					if (!startResult.Success)
+						Console.WriteLine($"Failed to start updating order book for exchange '{Name}'!");
+
+					orderBook.OnOrderBookUpdate += (update) =>
+					{
+						coinPrices[coin].UpdateOrderBook(
+							update.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
+							update.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)),
+							true);
+					};
+				});
+
+				tradesUpdatingThread.Start();
+				orderBookUpdatingThread.Start();
+			}
 		}
 
 		protected override async Task RemoveNonExistentCoins()

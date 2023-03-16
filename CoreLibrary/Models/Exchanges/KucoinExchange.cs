@@ -1,6 +1,8 @@
 ﻿using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
+using CryptoExchange.Net.Objects;
 using Kucoin.Net.Clients;
+using Kucoin.Net.SymbolOrderBooks;
 
 namespace CoreLibrary.Models.Exchanges
 {
@@ -172,17 +174,36 @@ namespace CoreLibrary.Models.Exchanges
 			foreach (var coin in coinPrices.Keys)
 			{
 				var ticker = GetTickerByCoin(coin);
-				await _socketClient.SpotStreams.SubscribeToTickerUpdatesAsync(ticker, (update) =>
+
+				var tradesUpdatingThread = new Thread(async () => await _socketClient.SpotStreams.SubscribeToTickerUpdatesAsync(ticker, (update) =>
 				{
 					coinPrices[coin].AddTick((decimal)update.Data.LastPrice, update.Data.Timestamp);
+				}));
+
+				var orderBookUpdatingThread = new Thread(async () =>
+				{
+					var orderBook = new KucoinSpotSymbolOrderBook(ticker, new() { Limit = 50 });
+					orderBook.OnStatusChange += (oldState, newState) =>
+					{
+						if (newState != OrderBookStatus.Synced)
+							coinPrices[coin].ClearOrderBook();
+					};
+					var startResult = await orderBook.StartAsync();
+
+					if (!startResult.Success)
+						Console.WriteLine($"Failed to start updating order book for exchange '{Name}'!");
+
+					orderBook.OnOrderBookUpdate += (update) =>
+					{
+						coinPrices[coin].UpdateOrderBook(
+							update.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
+							update.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)),
+							true);
+					};
 				});
 
-				await _socketClient.SpotStreams.SubscribeToAggregatedOrderBookUpdatesAsync(ticker, (update) =>
-				{
-					coinPrices[coin].UpdateOrderBook(
-						update.Data.Changes.Bids.Select(b => KeyValuePair.Create(b.Price, b.Quantity)),
-						update.Data.Changes.Asks.Select(a => KeyValuePair.Create(a.Price, a.Quantity)));
-				});
+				tradesUpdatingThread.Start();
+				orderBookUpdatingThread.Start();
 			}
 		}
 
