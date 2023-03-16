@@ -9,6 +9,8 @@
   <ItemGroup>
     <Compile Remove="Models\Exchanges\BitmartExchange.cs" />
     <Compile Remove="Models\Exchanges\BitstampExchange.cs" />
+    <Compile Remove="Models\Exchanges\GateioExchange.cs" />
+    <Compile Remove="Models\Exchanges\OkxExchange.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -17,6 +19,8 @@
     <PackageReference Include="Bittrex.Net" Version="7.1.1" />
     <PackageReference Include="Bybit.Net" Version="1.5.1" />
     <PackageReference Include="Coinbase" Version="6.0.1" />
+    <PackageReference Include="Discord.Net" Version="3.9.0" />
+    <PackageReference Include="Discord.Net.Core" Version="3.9.0" />
     <PackageReference Include="Gate.IO" Version="1.1.5" />
     <PackageReference Include="Huobi.Net" Version="4.2.3" />
     <PackageReference Include="KrakenExchange.Net" Version="3.1.6" />

@@ -1,6 +1,5 @@
 ﻿using CoreLibrary.Models.Enums;
 using CoreLibrary.Models.Exchanges.Base;
-using System.Diagnostics;
 
 namespace CoreLibrary.Models.Services
 {
@@ -22,31 +21,35 @@ namespace CoreLibrary.Models.Services
 			_chains = GetArbitrageChains(_coins, _exchanges);
 		}
 
-		public async Task<IEnumerable<ArbitrageChain>> GetUpdatedChains(decimal minimumTotalDivergence)
+		public async Task<ArbitrageChain> GetBestChain(decimal minimumTotalDivergence, IEnumerable<ArbitrageChain> exceptedChains)
 		{
-			var tasks = _chains.Select(async chain =>
+			var bestChain = _chains.FirstOrDefault(chain =>
 			{
-				var totalDivergence = chain.GetTotalDivergence();
-				var longAveragePrice = chain.FromExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Long);
-				var shortAveragePrice = chain.ToExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Short);
-				var fromExchangeSpread = chain.FromExchangeMarketData.Spread;
-				var toExchangeSpread = chain.ToExchangeMarketData.Spread;
+				if (!exceptedChains.Contains(chain) && IsChainRelevant(chain, minimumTotalDivergence))
+					return true;
 
-				if (totalDivergence >= minimumTotalDivergence &&
-					longAveragePrice < shortAveragePrice &&
-					(fromExchangeSpread + toExchangeSpread) < totalDivergence)
-				{
-					return chain;
-				}
-				else
-				{
-					return null;
-				}
+				return false;
 			});
 
-			var chains = await Task.WhenAll(tasks);
+			return bestChain;
+		}
 
-			return chains.Where(c => c != null);
+		public bool IsChainRelevant(ArbitrageChain chain, decimal minimumTotalDivergence)
+		{
+			var totalDivergence = chain.GetTotalDivergence();
+			var longAveragePrice = chain.FromExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Long);
+			var shortAveragePrice = chain.ToExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Short);
+			var fromExchangeSpread = chain.FromExchangeMarketData.Spread;
+			var toExchangeSpread = chain.ToExchangeMarketData.Spread;
+
+			if (totalDivergence >= minimumTotalDivergence &&
+				longAveragePrice < shortAveragePrice &&
+				(fromExchangeSpread + toExchangeSpread) < totalDivergence)
+			{
+				return true;
+			}
+
+			return false;
 		}
 
 		private List<ArbitrageChain> GetArbitrageChains(List<CryptoCoin> coins, List<Exchange> exchanges)

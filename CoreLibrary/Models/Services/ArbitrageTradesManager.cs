@@ -6,8 +6,8 @@ namespace CoreLibrary.Models.Services
 {
     public sealed class ArbitrageTradesManager
     {
-        public event Action<ArbitrageTrade>? OnTradeOpened;
-        public event Action<ArbitrageTrade>? OnTradeClosed;
+        public event Func<ArbitrageTrade, Task>? OnTradeOpened;
+        public event Func<ArbitrageTrade, Task>? OnTradeClosed;
         private readonly ConcurrentBag<ArbitrageTrade> _trades;
         private readonly int _minimumSecondsInTrade;
         private readonly decimal _stopLoss;
@@ -36,8 +36,8 @@ namespace CoreLibrary.Models.Services
             if (longTradePrice == 0 || shortTradePrice == 0)
                 return null;
 
-            var longAmount = (int)(_amountPerTrade / longTradePrice);
-            var shortAmount = (int)(_amountPerTrade / shortTradePrice);
+            var longAmount = (long)(_amountPerTrade / longTradePrice);
+            var shortAmount = (long)(_amountPerTrade / shortTradePrice);
 
             var longTrade = new Trade();
             var shortTrade = new Trade();
@@ -57,6 +57,11 @@ namespace CoreLibrary.Models.Services
             return _trades.Any(trade => !trade.IsClosed && trade.ArbitrageChain.Equals(chain));
         }
 
+        public IEnumerable<ArbitrageChain> GetOpenTradesArbitrageChains()
+        {
+            return _trades.Where(trade => !trade.IsClosed).Select(trade => trade.ArbitrageChain);
+        }
+
         private void StartClosingPositions()
         {
             _ = Task.Run(async () =>
@@ -69,6 +74,9 @@ namespace CoreLibrary.Models.Services
                         var shortTradePrice = trade.ArbitrageChain.ToExchangeMarketData.GetAverageMarketPriceForAmount(_amountPerTrade, TradeAction.Long);
                         var estimatedProfit = trade.GetEstimatedProfit(longTradePrice, shortTradePrice);
 
+                        if (shortTradePrice == 0 || longTradePrice == 0)
+                            continue;
+
                         if ((estimatedProfit <= -_stopLoss || estimatedProfit >= _takeProfit) &&
                             trade.TimeInTrade >= TimeSpan.FromSeconds(_minimumSecondsInTrade))
                         {
@@ -78,7 +86,6 @@ namespace CoreLibrary.Models.Services
                             OnTradeClosed?.Invoke(trade);
                         }
                     }
-                    await Task.Delay(1);
                 }
             });
         }
