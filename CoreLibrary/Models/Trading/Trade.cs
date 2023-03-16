@@ -4,7 +4,7 @@ namespace CoreLibrary.Models.Trading
 {
     public sealed class Trade
     {
-        public int Amount { get; set; }
+        public long Amount { get; set; }
         public decimal EntryPrice { get; private set; }
         public decimal ExitPrice { get; private set; }
         public DateTime EntryDateTime { get; private set; }
@@ -23,7 +23,7 @@ namespace CoreLibrary.Models.Trading
         public TimeSpan TimeInTrade => ExitDateTime == DateTime.MinValue ? DateTime.UtcNow - EntryDateTime : ExitDateTime - EntryDateTime;
         public bool IsClosed => ExitDateTime != DateTime.MinValue;
 
-        public void Open(decimal entryPrice, int amount, TradeAction type)
+        public void Open(decimal entryPrice, long amount, TradeAction type)
         {
             EntryPrice = entryPrice;
             Amount = amount;

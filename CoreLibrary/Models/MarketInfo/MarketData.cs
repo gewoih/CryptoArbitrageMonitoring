@@ -10,7 +10,7 @@ namespace CoreLibrary.Models.MarketInfo
 		private CryptoCoin _coin;
 		private ConcurrentDictionary<decimal, decimal> _bids;
 		private ConcurrentDictionary<decimal, decimal> _asks;
-		private readonly ConcurrentBag<Tick> Ticks;
+		private readonly ConcurrentBag<Tick> _ticks;
 		public Tick Last = new(0, 0);
 		public decimal Ask = 0;
 		public decimal Bid = 0;
@@ -18,30 +18,36 @@ namespace CoreLibrary.Models.MarketInfo
 
 		public MarketData(Exchange exchange, CryptoCoin coin)
 		{
-			Ticks = new();
+			_ticks = new();
 			_bids = new();
 			_asks = new();
 			_exchange = exchange;
 			_coin = coin;
 		}
 
+		public void ClearOrderBook()
+		{
+			_bids.Clear();
+			_asks.Clear();
+		}
+
 		public bool AddTick(decimal lastPrice, DateTime time, int tradeNumber = -1)
 		{
-			if (Ticks.FirstOrDefault(t => t.Ticks == time.Ticks) is null)
+			if (_ticks.FirstOrDefault(t => t.Ticks == time.Ticks) is null)
 			{
 				if (tradeNumber != -1)
 				{
-					if (Ticks.FirstOrDefault(t => t.Number == tradeNumber) is not null)
+					if (_ticks.FirstOrDefault(t => t.Number == tradeNumber) is not null)
 						return false;
 
 					var newTick = new Tick(tradeNumber, lastPrice, time.Ticks);
-					Ticks.Add(newTick);
+					_ticks.Add(newTick);
 					Last = newTick;
 				}
 				else
 				{
 					var newTick = new Tick(lastPrice, time.Ticks);
-					Ticks.Add(newTick);
+					_ticks.Add(newTick);
 					Last = newTick;
 				}
 				
@@ -55,8 +61,8 @@ namespace CoreLibrary.Models.MarketInfo
 		{
 			if (isFullOrderBook)
 			{
-				_bids = new ConcurrentDictionary<decimal, decimal>(bids);
-				_asks = new ConcurrentDictionary<decimal, decimal>(asks);
+				_bids = new ConcurrentDictionary<decimal, decimal>(bids.DistinctBy(b => b.Key));
+				_asks = new ConcurrentDictionary<decimal, decimal>(asks.DistinctBy(a => a.Key));
 			}
 			else
 			{
@@ -87,10 +93,10 @@ namespace CoreLibrary.Models.MarketInfo
 			if (period <= 0)
 				throw new ArgumentOutOfRangeException(nameof(period));
 
-			if (Ticks.Count < period)
+			if (_ticks.Count < period)
 				return 0;
 
-			return Ticks
+			return _ticks
 					.OrderByDescending(t => t.Ticks)
 					.Take(period)
 					.Average(t => t.Price);
