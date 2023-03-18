@@ -1,4 +1,5 @@
 ﻿using CoreLibrary.Models.Enums;
+using CoreLibrary.Models.Reporters.Base;
 using CoreLibrary.Models.Trading;
 using Discord;
 using Discord.Rest;
@@ -6,7 +7,7 @@ using Discord.WebSocket;
 
 namespace CoreLibrary.Models.Reporters
 {
-	public sealed class DiscordTradeReporter
+	public sealed class DiscordTradeReporter : IArbitrageReporter
 	{
 		private readonly DiscordSocketClient _discordClient;
 		private readonly ulong _channelId;
@@ -16,7 +17,7 @@ namespace CoreLibrary.Models.Reporters
 		public DiscordTradeReporter(ulong channelId)
 		{
 			_channelId = channelId;
-			_discordClient = new();
+			_discordClient = new(new() { DefaultRetryMode = RetryMode.AlwaysRetry, ConnectionTimeout = 10000 });
 			_sendedSignalsByArbitrageChains = new();
 
 			_discordClient.Log += _discordClient_Log;
@@ -46,7 +47,7 @@ namespace CoreLibrary.Models.Reporters
 			await _discordClient.StartAsync();
 		}
 
-		public async Task SendSignalInfo(ArbitrageChain chain)
+		public async Task SendSignal(ArbitrageChain chain)
 		{
 			var message = await _channel.SendMessageAsync($"🟡",
 				embed:
@@ -59,7 +60,7 @@ namespace CoreLibrary.Models.Reporters
 			_sendedSignalsByArbitrageChains[chain] = message;
 		}
 
-		public async Task SendOpenedTradeInfo(ArbitrageTrade trade)
+		public async Task SendOpenedTrade(ArbitrageTrade trade)
 		{
 			await _channel.SendMessageAsync($"🟢",
 				embed:
@@ -78,7 +79,7 @@ namespace CoreLibrary.Models.Reporters
 					.Build());
 		}
 
-		public async Task SendClosedTradeInfo(ArbitrageTrade trade)
+		public async Task SendClosedTrade(ArbitrageTrade trade)
 		{
 			await _channel.SendMessageAsync($"🔴",
 				embed:
@@ -105,6 +106,7 @@ namespace CoreLibrary.Models.Reporters
 			if (_sendedSignalsByArbitrageChains.TryGetValue(chain, out var message))
 			{
 				await _channel.DeleteMessageAsync(message.Id);
+				_sendedSignalsByArbitrageChains.Remove(chain);
 			}
 		}
 	}
