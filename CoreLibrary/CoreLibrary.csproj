@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
@@ -14,20 +14,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Binance.Net" Version="8.4.2" />
-    <PackageReference Include="Bitfinex.Net" Version="5.1.1" />
-    <PackageReference Include="Bittrex.Net" Version="7.1.1" />
-    <PackageReference Include="Bybit.Net" Version="1.5.1" />
+    <PackageReference Include="Binance.Net" Version="8.4.3" />
+    <PackageReference Include="Bitfinex.Net" Version="5.1.2" />
+    <PackageReference Include="Bittrex.Net" Version="7.1.2" />
+    <PackageReference Include="Bybit.Net" Version="1.5.2" />
     <PackageReference Include="Coinbase" Version="6.0.1" />
     <PackageReference Include="Discord.Net" Version="3.9.0" />
     <PackageReference Include="Discord.Net.Core" Version="3.9.0" />
-    <PackageReference Include="Gate.IO" Version="1.1.5" />
-    <PackageReference Include="Huobi.Net" Version="4.2.3" />
-    <PackageReference Include="KrakenExchange.Net" Version="3.1.6" />
-    <PackageReference Include="Kucoin.Net" Version="4.3.1" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="Gate.IO" Version="1.2.3" />
+    <PackageReference Include="Huobi.Net" Version="4.2.4" />
+    <PackageReference Include="KrakenExchange.Net" Version="3.1.7" />
+    <PackageReference Include="Kucoin.Net" Version="4.3.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="OKEx.Net" Version="5.3.1" />
-    <PackageReference Include="Telegram.Bot" Version="18.0.0" />
     <PackageReference Include="Websocket.Client" Version="4.6.1" />
   </ItemGroup>
 

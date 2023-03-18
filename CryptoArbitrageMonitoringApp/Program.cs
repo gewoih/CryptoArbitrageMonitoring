@@ -2,7 +2,9 @@
 using CoreLibrary.Models.Exchanges;
 using CoreLibrary.Models.Exchanges.Base;
 using CoreLibrary.Models.Reporters;
+using CoreLibrary.Models.Reporters.Base;
 using CoreLibrary.Models.Services;
+using CoreLibrary.Models.Trading;
 using CoreLibrary.Utils;
 
 namespace CryptoArbitrageMonitoringApp
@@ -34,7 +36,7 @@ namespace CryptoArbitrageMonitoringApp
 			await Task.Delay(-1);
 		}
 
-		private static async Task CreateStrategies(List<CryptoCoin> coins, List<Exchange> exchanges, DiscordTradeReporter tradeReporter)
+		private static async Task CreateStrategies(List<CryptoCoin> coins, List<Exchange> exchanges, IArbitrageReporter tradeReporter)
 		{
 			Console.Write("Number of strategies: ");
 			var strategiesNumber = int.Parse(Console.ReadLine());

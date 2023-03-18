@@ -42,7 +42,8 @@ namespace CoreLibrary.Models.Services
 			var fromExchangeSpread = chain.FromExchangeMarketData.Spread;
 			var toExchangeSpread = chain.ToExchangeMarketData.Spread;
 
-			if (totalDivergence >= minimumTotalDivergence &&
+			if (longAveragePrice != 0 && shortAveragePrice != 0 &&
+				totalDivergence >= minimumTotalDivergence &&
 				longAveragePrice < shortAveragePrice &&
 				(fromExchangeSpread + toExchangeSpread) < totalDivergence)
 			{

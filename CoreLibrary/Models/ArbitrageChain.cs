@@ -55,17 +55,6 @@ namespace CoreLibrary.Models
 			return currentDivergence - standardDivergence;
 		}
 
-		public decimal GetCurrentDifference()
-		{
-			var fromExchangeAsk = FromExchangeMarketData.Ask;
-            var toExchangeBid = ToExchangeMarketData.Bid;
-
-            if (fromExchangeAsk == 0 || toExchangeBid == 0)
-                return 0;
-
-			return fromExchangeAsk - toExchangeBid;
-        }
-
 		public override string? ToString()
 		{
 			var firstExchangeLastTick = FromExchangeMarketData;
@@ -80,7 +69,6 @@ namespace CoreLibrary.Models
 			var secondExchangeLast = secondExchangeLastTick.Last.Price.Normalize();
 			var secondExchangeSpread = Math.Round(secondExchangeLastTick.Spread.Normalize(), 6);
 
-			var currentDifference = GetCurrentDifference().Normalize();
 			var standardDivergence = Math.Round(GetStandardDivergence().Normalize(), 2);
 			var currentDivergence = Math.Round(GetCurrentDivergence().Normalize(), 2);
 			var totalDivergence = Math.Round(GetTotalDivergence().Normalize(), 2);
@@ -90,8 +78,7 @@ namespace CoreLibrary.Models
 					$"A:{firstExchangeAsk}$/{secondExchangeAsk}$; " +
 					$"L:{firstExchangeLast}$/{secondExchangeLast}$; " +
 					$"S:{firstExchangeSpread}%/{secondExchangeSpread}%]; " +
-					$"[DIFF: {currentDifference}$; " +
-					$"S:{standardDivergence}%; " +
+					$"[S:{standardDivergence}%; " +
 					$"C:{currentDivergence}%; " +
 					$"T:{totalDivergence}%];";
 		}

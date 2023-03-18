@@ -1,5 +1,6 @@
 ﻿using CoreLibrary.Models.Exchanges.Base;
 using CoreLibrary.Models.Reporters;
+using CoreLibrary.Models.Reporters.Base;
 using CoreLibrary.Models.Trading;
 using System.Collections.Concurrent;
 
@@ -16,9 +17,9 @@ namespace CoreLibrary.Models.Services
 		private readonly ArbitrageFinder _arbitrageFinder;
 		private readonly ArbitrageTradesManager _tradesManager;
 		private readonly ConcurrentDictionary<ArbitrageChain, DateTime> _arbitrageChainsDiscoveryTimes;
-		private readonly DiscordTradeReporter _tradeReporter;
+		private readonly IArbitrageReporter _tradeReporter;
 
-		public ArbitrageStrategy(DiscordTradeReporter tradeReporter, List<CryptoCoin> coins, List<Exchange> exchanges, decimal minimumTotalDivergence, int divergencePeriod,
+		public ArbitrageStrategy(IArbitrageReporter tradeReporter, List<CryptoCoin> coins, List<Exchange> exchanges, decimal minimumTotalDivergence, int divergencePeriod,
 			int minimumSecondsInTrade, decimal takeProfit, decimal stopLoss, decimal amountPerTrade, int minimumSecondsOfChainHolding)
 		{
 			MinimumTotalDivergence = minimumTotalDivergence;
@@ -76,11 +77,13 @@ namespace CoreLibrary.Models.Services
 				if (DateTime.Now - chain.Value < TimeSpan.FromSeconds(MinimumSecondsOfChainHolding))
 					continue;
 
-				Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: CHAIN STAYED MORE THAN " +
+				if (_arbitrageFinder.IsChainRelevant(chain.Key, MinimumTotalDivergence))
+				{
+					Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: CHAIN STAYED MORE THAN " +
 					$"{MinimumSecondsOfChainHolding} SECONDS. TRYING OPEN THE TRADE.");
 
-				if (_arbitrageFinder.IsChainRelevant(chain.Key, MinimumTotalDivergence))
 					_tradesManager.TryOpenTradeByArbitrageChain(chain.Key);
+				}
 				
 				_ = _tradeReporter.RemoveSignal(chain.Key);
 				_arbitrageChainsDiscoveryTimes.TryRemove(chain.Key, out _);
@@ -94,7 +97,7 @@ namespace CoreLibrary.Models.Services
 				_arbitrageChainsDiscoveryTimes[chain] = DateTime.Now;
 				
 				Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: NEW CHAIN WAS DISCOVERED: {chain} {Environment.NewLine}");
-				_ = _tradeReporter.SendSignalInfo(chain);
+				_ = _tradeReporter.SendSignal(chain);
 				
 				return true;
 			}
@@ -105,12 +108,12 @@ namespace CoreLibrary.Models.Services
 		{
 			Console.WriteLine($"[{DateTime.UtcNow:HH:mm:ss.fff}]: OPENED TRADE {trade} {Environment.NewLine}");
 
-			_ = _tradeReporter.SendOpenedTradeInfo(trade);
+			_ = _tradeReporter.SendOpenedTrade(trade);
 		}
 
 		private async Task ArbitrageTradesManager_OnTradeClosed(ArbitrageTrade trade)
 		{
-			_ = _tradeReporter.SendClosedTradeInfo(trade);
+			_ = _tradeReporter.SendClosedTrade(trade);
 
 			var arbitrageTradeProfitWithComission = (trade.LongTrade.Profit + trade.ShortTrade.Profit - trade.Comission) /
 													(trade.LongTrade.EntryPrice + trade.ShortTrade.EntryPrice)
