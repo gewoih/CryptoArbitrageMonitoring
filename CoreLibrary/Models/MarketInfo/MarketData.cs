@@ -6,8 +6,6 @@ namespace CoreLibrary.Models.MarketInfo
 {
 	public sealed class MarketData
 	{
-		private Exchange _exchange;
-		private CryptoCoin _coin;
 		private ConcurrentDictionary<decimal, decimal> _bids;
 		private ConcurrentDictionary<decimal, decimal> _asks;
 		private readonly ConcurrentBag<Tick> _ticks;
@@ -16,13 +14,11 @@ namespace CoreLibrary.Models.MarketInfo
 		public decimal Bid = 0;
 		public decimal Spread = 0;
 
-		public MarketData(Exchange exchange, CryptoCoin coin)
+		public MarketData()
 		{
 			_ticks = new();
 			_bids = new();
 			_asks = new();
-			_exchange = exchange;
-			_coin = coin;
 		}
 
 		public void ClearOrderBook()

@@ -14,7 +14,7 @@ namespace CoreLibrary.Models.Exchanges.Base
 
         protected Exchange()
         {
-            coinPrices = CoinsUtils.GetCoins().ToDictionary(key => key, value => new MarketData(this, value));
+            coinPrices = CoinsUtils.GetCoins().ToDictionary(key => key, value => new MarketData());
         }
 
         public abstract string GetTradeLinkForCoin(CryptoCoin coin, TradeAction tradeAction);
@@ -24,7 +24,7 @@ namespace CoreLibrary.Models.Exchanges.Base
             if (coinPrices.TryGetValue(coin, out MarketData value))
                 return value;
             else
-                return new(this, coin);
+                return new();
         }
 
         public bool HasCoin(CryptoCoin coin)
